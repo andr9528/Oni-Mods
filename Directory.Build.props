@@ -20,7 +20,7 @@
   <!--Copyright notice-->
   <PropertyGroup>
     <CurrentYear>$([System.DateTime]::Now.ToString(`yyyy`))</CurrentYear>
-    <Author>Sgt_Imalas</Author>
+    <Author>BlueishTigerDK (Steam), WolfDK (Discord), andr9528 (GitHub)</Author>
     <AssemblyCopyright>Copyright ©$(Author) $(CurrentYear)</AssemblyCopyright>
   </PropertyGroup>
   
