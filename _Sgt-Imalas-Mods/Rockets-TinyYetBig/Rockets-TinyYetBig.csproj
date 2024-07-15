@@ -607,14 +607,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Reference Include="ONITwitchLib">
-	    <HintPath>..\TwitchLib\ONITwitchLib.dll</HintPath>
-	  </Reference>
-	</ItemGroup>
-
-	<ItemGroup>
 	  <Folder Include="ModAssets\translations\" />
 	  <Folder Include="SpaceStations\Construction\ModuleItems\" />
 	  <Folder Include="TwitchEvents\TwitchEventAddons\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="ONITwitchLib">
+	    <HintPath>..\..\TwitchLib\ONITwitchLib.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 </Project>

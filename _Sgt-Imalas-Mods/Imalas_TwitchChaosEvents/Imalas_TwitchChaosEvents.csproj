@@ -46,12 +46,6 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-	  <Reference Include="ONITwitchLib">
-	    <HintPath>..\TwitchLib\ONITwitchLib.dll</HintPath>
-	  </Reference>
-	</ItemGroup>
-	
-	<ItemGroup>
 	  <None Update="ModAssets\anim\assets\beefalo\beefalo_0.png">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>
@@ -155,5 +149,11 @@
 	
 	<ItemGroup>
 	  <Folder Include="ModAssets\translations\" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Reference Include="ONITwitchLib">
+	    <HintPath>..\..\TwitchLib\ONITwitchLib.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 </Project>

@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <Reference Include="ONITwitchLib">
-      <HintPath>..\TwitchLib\ONITwitchLib.dll</HintPath>
+      <HintPath>..\..\TwitchLib\ONITwitchLib.dll</HintPath>
     </Reference>
   </ItemGroup>
 
