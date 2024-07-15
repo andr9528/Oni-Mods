@@ -3,7 +3,7 @@ using KMod;
 using System;
 using UtilLibs;
 
-namespace SensoryOverload
+namespace TooManySensors
 {
     public class Mod : UserMod2
     {

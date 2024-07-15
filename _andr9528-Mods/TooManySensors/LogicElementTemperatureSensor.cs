@@ -7,7 +7,7 @@ using UnityEngine;
 using static STRINGS.MISC.STATUSITEMS;
 using static STRINGS.UI;
 
-namespace SensoryOverload
+namespace TooManySensors
 {
     public class LogicElementTemperatureSensor : Switch, ISaveLoadable, IThresholdSwitch, ISim4000ms
     {

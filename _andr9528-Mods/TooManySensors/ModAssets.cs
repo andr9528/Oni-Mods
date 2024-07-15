@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace SensoryOverload
+namespace TooManySensors
 {
     internal class ModAssets
     {

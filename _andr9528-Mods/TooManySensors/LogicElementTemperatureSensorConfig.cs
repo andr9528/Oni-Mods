@@ -2,7 +2,7 @@
 using TUNING;
 using UnityEngine;
 
-namespace SensoryOverload
+namespace TooManySensors
 {
     public class LogicElementTemperatureSensorConfig : IBuildingConfig
     {

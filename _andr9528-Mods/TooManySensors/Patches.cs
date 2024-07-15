@@ -8,9 +8,9 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UtilLibs;
-using static SensoryOverload.ModAssets;
+using static TooManySensors.ModAssets;
 
-namespace SensoryOverload
+namespace TooManySensors
 {
     internal class Patches
     {
