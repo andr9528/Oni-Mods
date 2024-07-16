@@ -4,9 +4,9 @@ using UnityEngine;
 
 namespace TooManySensors
 {
-    public class LogicElementTemperatureSensorConfig : IBuildingConfig
+    public class TmsLogicElementTemperatureSensorConfig : IBuildingConfig
     {
-        public static string ID = "LogicElementTemperatureSensor";
+        public static string ID = "TmsLogicElementTemperatureSensor";
 
         /// <inheritdoc />
         public override BuildingDef CreateBuildingDef()
@@ -31,9 +31,9 @@ namespace TooManySensors
             buildingDef.AlwaysOperational = true;
             buildingDef.LogicOutputPorts = new List<LogicPorts.Port>();
             buildingDef.LogicOutputPorts.Add(LogicPorts.Port.OutputPort(LogicSwitch.PORT_ID, new CellOffset(0, 0),
-                (string) STRINGS.BUILDINGS.PREFABS.LOGICELEMENTTEMPERATURESENSOR.LOGIC_PORT,
-                (string) STRINGS.BUILDINGS.PREFABS.LOGICELEMENTTEMPERATURESENSOR.LOGIC_PORT_ACTIVE,
-                (string) STRINGS.BUILDINGS.PREFABS.LOGICELEMENTTEMPERATURESENSOR.LOGIC_PORT_INACTIVE, true));
+                (string) STRINGS.BUILDINGS.PREFABS.TMSLOGICELEMENTTEMPERATURESENSOR.LOGIC_PORT,
+                (string) STRINGS.BUILDINGS.PREFABS.TMSLOGICELEMENTTEMPERATURESENSOR.LOGIC_PORT_ACTIVE,
+                (string) STRINGS.BUILDINGS.PREFABS.TMSLOGICELEMENTTEMPERATURESENSOR.LOGIC_PORT_INACTIVE, true));
             SoundEventVolumeCache.instance.AddVolume("switchthermal_kanim", "PowerSwitch_on",
                 NOISE_POLLUTION.NOISY.TIER3);
             SoundEventVolumeCache.instance.AddVolume("switchthermal_kanim", "PowerSwitch_off",
@@ -46,7 +46,7 @@ namespace TooManySensors
         /// <inheritdoc />
         public override void DoPostConfigureComplete(GameObject go)
         {
-            var temperatureSensor = go.AddOrGet<LogicElementTemperatureSensor>();
+            var temperatureSensor = go.AddOrGet<TmsLogicElementTemperatureSensor>();
             temperatureSensor.manuallyControlled = false;
             temperatureSensor.minTemp = 0.0f;
             temperatureSensor.maxTemp = 9999f;

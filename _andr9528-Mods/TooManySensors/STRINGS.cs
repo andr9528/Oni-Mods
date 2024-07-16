@@ -13,10 +13,10 @@ namespace TooManySensors
         {
             public class PREFABS
             {
-                public class LOGICELEMENTTEMPERATURESENSOR
+                public class TMSLOGICELEMENTTEMPERATURESENSOR
                 {
                     public static LocString NAME = (LocString) UI.FormatAsLink("Thermo Element Sensor",
-                        nameof(LogicElementTemperatureSensor));
+                        nameof(TmsLogicElementTemperatureSensor));
 
                     public static LocString DESC =
                         (LocString)

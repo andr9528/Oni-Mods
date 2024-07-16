@@ -4,32 +4,34 @@ using System.Linq;
 using KSerialization;
 using STRINGS;
 using UnityEngine;
+using UtilLibs;
 using static STRINGS.MISC.STATUSITEMS;
 using static STRINGS.UI;
 
 namespace TooManySensors
 {
-    public class LogicElementTemperatureSensor : Switch, ISaveLoadable, IThresholdSwitch, ISim4000ms
+    public class TmsLogicElementTemperatureSensor : Switch, ISaveLoadable, IThresholdSwitch, ISim4000ms
     {
+        private bool buildingRoom = false;
         private HandleVector<int>.Handle structureTemperature;
         [Serialize] public float thresholdTemperature = 280f;
         [Serialize] public bool activateOnWarmerThan;
         public float minTemp;
         public float maxTemp = 373.15f;
-        private const int NumFrameDelay = 8;
         private float averageTemp;
         private bool wasOn;
-        private int sampleIdx;
-        private HashSet<int> RoomCells = new();
+        private HashSet<int> RoomCells;
         [MyCmpAdd] private CopyBuildingSettings copyBuildingSettings;
         [MyCmpGet] private LogicPorts logicPorts;
 
-        private static readonly EventSystem.IntraObjectHandler<LogicElementTemperatureSensor> OnCopySettingsDelegate =
-            new((Action<LogicElementTemperatureSensor, object>) ((component, data) => component.OnCopySettings(data)));
+        private static readonly EventSystem.IntraObjectHandler<TmsLogicElementTemperatureSensor>
+            OnCopySettingsDelegate =
+                new((Action<TmsLogicElementTemperatureSensor, object>) ((component, data) =>
+                    component.OnCopySettings(data)));
 
         private void OnCopySettings(object data)
         {
-            var component = ((GameObject) data).GetComponent<LogicElementTemperatureSensor>();
+            var component = ((GameObject) data).GetComponent<TmsLogicElementTemperatureSensor>();
             if (!((UnityEngine.Object) component != (UnityEngine.Object) null))
                 return;
             Threshold = component.Threshold;
@@ -153,12 +155,15 @@ namespace TooManySensors
         public override void OnSpawn()
         {
             base.OnSpawn();
+            RoomCells = new HashSet<int>();
+            SgtLogger.log($"{nameof(TmsLogicElementTemperatureSensor)} Spawned");
+
             structureTemperature = GameComps.StructureTemperatures.GetHandle(gameObject);
             OnToggle += new Action<bool>(OnSwitchToggled);
             UpdateVisualState(true);
             UpdateLogicCircuit();
             wasOn = switchedOn;
-            OnRoomRebuild(null);
+            OnRoomRebuild();
             averageTemp = RecalculateAverageRoomTemperature();
         }
 
@@ -191,11 +196,17 @@ namespace TooManySensors
             logicPorts.SendSignal(LogicSwitch.PORT_ID, switchedOn ? 1 : 0);
         }
 
-        public void OnRoomRebuild(object data)
+        public void OnRoomRebuild()
         {
+            if (buildingRoom)
+                return;
+            buildingRoom = true;
+
             int myCell = Grid.PosToCell(this);
             if ((double) Grid.Mass[myCell] <= 0.0)
                 return;
+
+            SgtLogger.log($"{nameof(TmsLogicElementTemperatureSensor)} Cell {myCell} calculating Room");
 
             RoomCells.Clear();
 
@@ -205,17 +216,28 @@ namespace TooManySensors
 
             GrabCellsRecursive(myCell, ref visited, startElement);
 
-            sampleIdx = 0;
+            SgtLogger.log($"{nameof(TmsLogicElementTemperatureSensor)} Cell {myCell} visited {visited.Count} cells.");
+            SgtLogger.log(
+                $"{nameof(TmsLogicElementTemperatureSensor)} Cell {myCell} has a room of {RoomCells.Count} cells.");
+
+            buildingRoom = false;
         }
 
         private void GrabCellsRecursive(int source, ref HashSet<int> visitedCells, Element sourceElement)
         {
+            SgtLogger.log($"Visiting cell");
+
             if (visitedCells.Contains(source))
                 return;
 
             visitedCells.Add(source);
 
-            if ((!Grid.IsGas(source) && !Grid.IsLiquid(source)) || Grid.IsCellOpenToSpace(source)) return;
+            if (Grid.IsCellOpenToSpace(source))
+                return;
+            if (Grid.Mass[source] <= 0.0)
+                return;
+            if (!(Grid.IsGas(source) || Grid.IsLiquid(source)))
+                return;
             if (Grid.Element[source] != sourceElement /*|| visitedCells.Count >= 10000*/)
                 return;
 
@@ -239,7 +261,7 @@ namespace TooManySensors
         /// <inheritdoc />
         public void Sim4000ms(float dt)
         {
-            OnRoomRebuild(null);
+            OnRoomRebuild();
             averageTemp = RecalculateAverageRoomTemperature();
 
             if (activateOnWarmerThan)
