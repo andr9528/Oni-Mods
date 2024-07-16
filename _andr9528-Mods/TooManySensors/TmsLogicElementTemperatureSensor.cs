@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using KSerialization;
+using Microsoft.Build.Utilities;
 using STRINGS;
 using UnityEngine;
 using UtilLibs;
@@ -12,15 +13,18 @@ namespace TooManySensors
 {
     public class TmsLogicElementTemperatureSensor : Switch, ISaveLoadable, IThresholdSwitch, ISim4000ms
     {
+        private static Dictionary<int, TmsLogicElementTemperatureSensor> knownElementTemperatureSensors = new Dictionary<int, TmsLogicElementTemperatureSensor>()
+
         private bool buildingRoom = false;
         private HandleVector<int>.Handle structureTemperature;
-        [Serialize] public float thresholdTemperature = 280f;
-        [Serialize] public bool activateOnWarmerThan;
+        [Serialize] [SerializeField] public float thresholdTemperature = 280f;
+        [Serialize] [SerializeField] public bool activateOnWarmerThan;
+        [Serialize] [SerializeField] public bool alreadyCalculated;
         public float minTemp;
         public float maxTemp = 373.15f;
-        private float averageTemp;
+        [Serialize] [SerializeField] public float averageTemp;
         private bool wasOn;
-        private HashSet<int> RoomCells;
+        public HashSet<int> roomCells;
         [MyCmpAdd] private CopyBuildingSettings copyBuildingSettings;
         [MyCmpGet] private LogicPorts logicPorts;
 
@@ -152,11 +156,22 @@ namespace TooManySensors
             Subscribe(-905833192, OnCopySettingsDelegate);
         }
 
+        /// <inheritdoc />
+        public override void OnCleanUp()
+        {
+            base.OnCleanUp();
+            int myCell = Grid.PosToCell(this);
+            knownElementTemperatureSensors.Remove(myCell);
+        }
+
         public override void OnSpawn()
         {
             base.OnSpawn();
-            RoomCells = new HashSet<int>();
+            roomCells = new HashSet<int>();
             SgtLogger.log($"{nameof(TmsLogicElementTemperatureSensor)} Spawned");
+
+            int myCell = Grid.PosToCell(this);
+            knownElementTemperatureSensors.Add(myCell, this);
 
             structureTemperature = GameComps.StructureTemperatures.GetHandle(gameObject);
             OnToggle += new Action<bool>(OnSwitchToggled);
@@ -164,7 +179,6 @@ namespace TooManySensors
             UpdateLogicCircuit();
             wasOn = switchedOn;
             OnRoomRebuild();
-            averageTemp = RecalculateAverageRoomTemperature();
         }
 
         private void OnSwitchToggled(bool toggled_on)
@@ -206,63 +220,76 @@ namespace TooManySensors
             if ((double) Grid.Mass[myCell] <= 0.0)
                 return;
 
-            SgtLogger.log($"{nameof(TmsLogicElementTemperatureSensor)} Cell {myCell} calculating Room");
+            //SgtLogger.log($"{nameof(TmsLogicElementTemperatureSensor)} Cell {myCell} calculating Room");
 
-            RoomCells.Clear();
-
-            var visited = new HashSet<int>();
+            roomCells.Clear();
 
             Element startElement = Grid.Element[myCell];
 
-            GrabCellsRecursive(myCell, ref visited, startElement);
+            GrabCellsIterative(myCell, startElement);
 
-            SgtLogger.log($"{nameof(TmsLogicElementTemperatureSensor)} Cell {myCell} visited {visited.Count} cells.");
-            SgtLogger.log(
-                $"{nameof(TmsLogicElementTemperatureSensor)} Cell {myCell} has a room of {RoomCells.Count} cells.");
+            //SgtLogger.log(
+            //    $"{nameof(TmsLogicElementTemperatureSensor)} Cell {myCell} has a room of {roomCells.Count} cells.");
 
             buildingRoom = false;
+
+            RecalculateAverageRoomTemperature();
         }
 
-        private void GrabCellsRecursive(int source, ref HashSet<int> visitedCells, Element sourceElement)
+        private bool IsCellGood(int source, Element sourceElement)
         {
-            SgtLogger.log($"Visiting cell");
-
-            if (visitedCells.Contains(source))
-                return;
-
-            visitedCells.Add(source);
-
+            if (!Grid.IsValidCell(source))
+                return false;
             if (Grid.IsCellOpenToSpace(source))
-                return;
+                return false;
             if (Grid.Mass[source] <= 0.0)
-                return;
+                return false;
             if (!(Grid.IsGas(source) || Grid.IsLiquid(source)))
-                return;
-            if (Grid.Element[source] != sourceElement /*|| visitedCells.Count >= 10000*/)
-                return;
+                return false;
+            if (Grid.Element[source] != sourceElement)
+                return false;
+            return true;
+        }
 
-            RoomCells.Add(source);
+        private void GrabCellsIterative(int source, Element sourceElement)
+        {
+            //CavityInfo cavityForCell = Game.Instance.roomProber.GetCavityForCell(source);
+            //SgtLogger.log($"Cell {source} is inside Cavity with {cavityForCell.numCells} total cells");
 
-            int above = Grid.CellAbove(source);
-            int below = Grid.CellBelow(source);
-            int left = Grid.CellLeft(source);
-            int right = Grid.CellRight(source);
+            HashSet<int> visited = new();
+            Queue<int> queue = new();
+            queue.Enqueue(source);
 
-            if (Grid.IsValidCell(above))
-                GrabCellsRecursive(above, ref visitedCells, sourceElement);
-            if (Grid.IsValidCell(below))
-                GrabCellsRecursive(below, ref visitedCells, sourceElement);
-            if (Grid.IsValidCell(left))
-                GrabCellsRecursive(left, ref visitedCells, sourceElement);
-            if (Grid.IsValidCell(right))
-                GrabCellsRecursive(right, ref visitedCells, sourceElement);
+            while (queue.Any())
+            {
+                int cell = queue.Dequeue();
+                if (knownElementTemperatureSensors.ContainsKey(cell))
+                {
+                    var otherSensor = knownElementTemperatureSensors[cell];
+                    otherSensor.alreadyCalculated = true;
+                    otherSensor.averageTemp = averageTemp; // The new temperature hasn't been calculated yet for this tick.
+                }
+
+                if (visited.Contains(cell))
+                    continue;
+                visited.Add(cell);
+
+                if (!IsCellGood(cell, sourceElement))
+                    continue;
+
+                roomCells.Add(cell);
+                queue.Enqueue(Grid.CellAbove(cell));
+                queue.Enqueue(Grid.CellBelow(cell));
+                queue.Enqueue(Grid.CellLeft(cell));
+                queue.Enqueue(Grid.CellRight(cell));
+            }
         }
 
         /// <inheritdoc />
         public void Sim4000ms(float dt)
         {
-            OnRoomRebuild();
-            averageTemp = RecalculateAverageRoomTemperature();
+            if (!alreadyCalculated)
+                OnRoomRebuild();
 
             if (activateOnWarmerThan)
             {
@@ -280,13 +307,11 @@ namespace TooManySensors
             }
         }
 
-        private float RecalculateAverageRoomTemperature()
+        private void RecalculateAverageRoomTemperature()
         {
-            float averageRoomTemperature = RoomCells.Where(Grid.IsValidCell).Sum(cell => Grid.Temperature[cell]);
-
-            averageRoomTemperature /= RoomCells.Count;
-
-            return averageRoomTemperature;
+            float averageRoomTemperature = roomCells.Where(Grid.IsValidCell).Sum(cell => Grid.Temperature[cell]);
+            averageRoomTemperature /= roomCells.Count;
+            averageTemp = averageRoomTemperature;
         }
     }
 }
