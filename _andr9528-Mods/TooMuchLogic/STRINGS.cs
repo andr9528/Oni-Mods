@@ -31,7 +31,7 @@ namespace TooManySensors
                                                                   " of matching elements enters the chosen range.");
 
                     public static LocString LOGIC_PORT =
-                        (LocString) ("Ambient" + UI.FormatAsLink("Temperature", "HEAT"));
+                        (LocString) ("Ambient " + UI.FormatAsLink("Temperature", "HEAT"));
 
                     public static LocString LOGIC_PORT_ACTIVE = (LocString) ("Sends a " +
                                                                              UI.FormatAsAutomationState("Green Signal",
