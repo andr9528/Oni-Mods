@@ -52,32 +52,37 @@ namespace DontBlameMods.cs
         {
             public static bool Prefix(ReportErrorDialog __instance)
             {
-
-                DebugUtil.Assert((UnityEngine.Object)Global.Instance != (UnityEngine.Object)null && Global.Instance.modManager != null);
+                DebugUtil.Assert((UnityEngine.Object) Global.Instance != (UnityEngine.Object) null &&
+                                 Global.Instance.modManager != null);
                 Manager mod_mgr = Global.Instance.modManager;
-                List<KMod.Mod> allCrashableMods = mod_mgr.GetAllCrashableMods();
-                allCrashableMods.Sort((Comparison<KMod.Mod>)((x, y) => y.foundInStackTrace.CompareTo(x.foundInStackTrace)));
+                var allCrashableMods = mod_mgr.GetAllCrashableMods();
+                allCrashableMods.Sort((Comparison<KMod.Mod>) ((x, y) =>
+                    y.foundInStackTrace.CompareTo(x.foundInStackTrace)));
                 foreach (KMod.Mod mod in allCrashableMods)
                 {
-                    HierarchyReferences hierarchyReferences = Util.KInstantiateUI<HierarchyReferences>(__instance.modEntryPrefab, __instance.modEntryParent.gameObject);
-                    LocText reference = hierarchyReferences.GetReference<LocText>("Title");
+                    var hierarchyReferences = Util.KInstantiateUI<HierarchyReferences>(__instance.modEntryPrefab,
+                        __instance.modEntryParent.gameObject);
+                    var reference = hierarchyReferences.GetReference<LocText>("Title");
                     reference.text = mod.title;
                     reference.color = mod.foundInStackTrace ? Color.red : Color.white;
-                    MultiToggle toggle = hierarchyReferences.GetReference<MultiToggle>("EnabledToggle");
+                    var toggle = hierarchyReferences.GetReference<MultiToggle>("EnabledToggle");
                     toggle.ChangeState(mod.IsEnabledForActiveDlc() ? 1 : 0);
-                    KMod.Label mod_label = mod.label;
-                    toggle.onClick += (System.Action)(() =>
+                    Label mod_label = mod.label;
+                    toggle.onClick += (System.Action) (() =>
                     {
                         bool enabled = !mod_mgr.IsModEnabled(mod_label);
                         toggle.ChangeState(enabled ? 1 : 0);
-                        mod_mgr.EnableMod(mod_label, enabled, (object)__instance);
+                        mod_mgr.EnableMod(mod_label, enabled, (object) __instance);
                     });
-                    toggle.GetComponent<ToolTip>().OnToolTip = (Func<string>)(() => (string)(mod_mgr.IsModEnabled(mod_label) ? STRINGS.UI.FRONTEND.MODS.TOOLTIPS.ENABLED : STRINGS.UI.FRONTEND.MODS.TOOLTIPS.DISABLED));
+                    toggle.GetComponent<ToolTip>().OnToolTip = (Func<string>) (() =>
+                        (string) (mod_mgr.IsModEnabled(mod_label)
+                            ? STRINGS.UI.FRONTEND.MODS.TOOLTIPS.ENABLED
+                            : STRINGS.UI.FRONTEND.MODS.TOOLTIPS.DISABLED));
                     hierarchyReferences.gameObject.SetActive(true);
                 }
+
                 return false;
             }
         }
-
     }
 }

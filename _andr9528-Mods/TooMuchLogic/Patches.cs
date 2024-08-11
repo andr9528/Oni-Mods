@@ -24,7 +24,7 @@ namespace TooManySensors
             public static void Prefix()
             {
                 InjectionMethods.AddBuildingToPlanScreenBehindNext(GameStrings.PlanMenuCategory.Automation,
-                    TmsLogicElementTemperatureSensorConfig.ID);
+                    TmlConnectedElementTemperatureSensorConfig.ID);
                 //ModUtil.AddBuildingToPlanScreen(GameStrings.PlanMenuCategory.XXXX, XXXX.ID);
             }
         }
@@ -48,7 +48,7 @@ namespace TooManySensors
             public static void Postfix()
             {
                 InjectionMethods.AddBuildingToTechnology(GameStrings.Technology.Computers.GenericSensors,
-                    TmsLogicElementTemperatureSensorConfig.ID);
+                    TmlConnectedElementTemperatureSensorConfig.ID);
             }
         }
     }

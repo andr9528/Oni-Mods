@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using KSerialization;
 using Microsoft.Build.Utilities;
 using STRINGS;
@@ -8,18 +9,20 @@ using UnityEngine;
 using UtilLibs;
 using static STRINGS.MISC.STATUSITEMS;
 using static STRINGS.UI;
+using CODEX = STRINGS.CODEX;
 
 namespace TooManySensors
 {
-    public class TmsLogicElementTemperatureSensor : Switch, ISaveLoadable, IThresholdSwitch, ISim4000ms
+    public class TmlConnectedElementTemperatureSensor : Switch, ISaveLoadable, IThresholdSwitch, ISim4000ms
     {
-        private static Dictionary<int, TmsLogicElementTemperatureSensor> knownElementTemperatureSensors = new Dictionary<int, TmsLogicElementTemperatureSensor>()
+        private static Dictionary<int, TmlConnectedElementTemperatureSensor> knownSensors = new();
+        private static Dictionary<string, List<int>> rooms = new();
 
+        [CanBeNull] private string currentRoomId;
         private bool buildingRoom = false;
         private HandleVector<int>.Handle structureTemperature;
         [Serialize] [SerializeField] public float thresholdTemperature = 280f;
         [Serialize] [SerializeField] public bool activateOnWarmerThan;
-        [Serialize] [SerializeField] public bool alreadyCalculated;
         public float minTemp;
         public float maxTemp = 373.15f;
         [Serialize] [SerializeField] public float averageTemp;
@@ -28,14 +31,14 @@ namespace TooManySensors
         [MyCmpAdd] private CopyBuildingSettings copyBuildingSettings;
         [MyCmpGet] private LogicPorts logicPorts;
 
-        private static readonly EventSystem.IntraObjectHandler<TmsLogicElementTemperatureSensor>
+        private static readonly EventSystem.IntraObjectHandler<TmlConnectedElementTemperatureSensor>
             OnCopySettingsDelegate =
-                new((Action<TmsLogicElementTemperatureSensor, object>) ((component, data) =>
+                new((Action<TmlConnectedElementTemperatureSensor, object>) ((component, data) =>
                     component.OnCopySettings(data)));
 
         private void OnCopySettings(object data)
         {
-            var component = ((GameObject) data).GetComponent<TmsLogicElementTemperatureSensor>();
+            var component = ((GameObject) data).GetComponent<TmlConnectedElementTemperatureSensor>();
             if (!((UnityEngine.Object) component != (UnityEngine.Object) null))
                 return;
             Threshold = component.Threshold;
@@ -161,17 +164,18 @@ namespace TooManySensors
         {
             base.OnCleanUp();
             int myCell = Grid.PosToCell(this);
-            knownElementTemperatureSensors.Remove(myCell);
+            knownSensors.Remove(myCell);
+            if (!string.IsNullOrWhiteSpace(currentRoomId))
+                rooms[currentRoomId].Remove(myCell);
         }
 
         public override void OnSpawn()
         {
             base.OnSpawn();
             roomCells = new HashSet<int>();
-            SgtLogger.log($"{nameof(TmsLogicElementTemperatureSensor)} Spawned");
 
             int myCell = Grid.PosToCell(this);
-            knownElementTemperatureSensors.Add(myCell, this);
+            knownSensors.Add(myCell, this);
 
             structureTemperature = GameComps.StructureTemperatures.GetHandle(gameObject);
             OnToggle += new Action<bool>(OnSwitchToggled);
@@ -210,7 +214,7 @@ namespace TooManySensors
             logicPorts.SendSignal(LogicSwitch.PORT_ID, switchedOn ? 1 : 0);
         }
 
-        public void OnRoomRebuild()
+        private void OnRoomRebuild()
         {
             if (buildingRoom)
                 return;
@@ -220,20 +224,20 @@ namespace TooManySensors
             if ((double) Grid.Mass[myCell] <= 0.0)
                 return;
 
-            //SgtLogger.log($"{nameof(TmsLogicElementTemperatureSensor)} Cell {myCell} calculating Room");
-
             roomCells.Clear();
 
             Element startElement = Grid.Element[myCell];
 
             GrabCellsIterative(myCell, startElement);
 
-            //SgtLogger.log(
-            //    $"{nameof(TmsLogicElementTemperatureSensor)} Cell {myCell} has a room of {roomCells.Count} cells.");
+            if (string.IsNullOrWhiteSpace(currentRoomId))
+            {
+                currentRoomId = Guid.NewGuid().ToString();
+                rooms.Add(currentRoomId, new List<int>());
+                rooms[currentRoomId].Add(myCell);
+            }
 
             buildingRoom = false;
-
-            RecalculateAverageRoomTemperature();
         }
 
         private bool IsCellGood(int source, Element sourceElement)
@@ -263,12 +267,8 @@ namespace TooManySensors
             while (queue.Any())
             {
                 int cell = queue.Dequeue();
-                if (knownElementTemperatureSensors.ContainsKey(cell))
-                {
-                    var otherSensor = knownElementTemperatureSensors[cell];
-                    otherSensor.alreadyCalculated = true;
-                    otherSensor.averageTemp = averageTemp; // The new temperature hasn't been calculated yet for this tick.
-                }
+                if (knownSensors.ContainsKey(cell) && UpdateTempFromOtherSensor(source, cell))
+                    break;
 
                 if (visited.Contains(cell))
                     continue;
@@ -285,12 +285,58 @@ namespace TooManySensors
             }
         }
 
+        private bool UpdateTempFromOtherSensor(int source, int cell)
+        {
+            var existingRoom = rooms.FirstOrDefault(x => x.Value.Contains(cell));
+            if (existingRoom.Equals(default(KeyValuePair<string, List<int>>)))
+                return false;
+
+            existingRoom.Value.Add(source);
+            currentRoomId = existingRoom.Key;
+
+            return SetAverageTempFromOtherSensor();
+        }
+
+        private bool SetAverageTempFromOtherSensor()
+        {
+            if (string.IsNullOrEmpty(currentRoomId))
+                return false;
+
+            TmlConnectedElementTemperatureSensor sensor = knownSensors[rooms[currentRoomId].First()];
+            averageTemp = sensor.averageTemp;
+
+            return true;
+        }
+
+        private void UpdateAverageTemp()
+        {
+            int myCell = Grid.PosToCell(this);
+            var room = rooms.First(x => x.Key == currentRoomId);
+
+            if (room.Value.First() == myCell)
+            {
+                float averageRoomTemperature = roomCells.Where(Grid.IsValidCell).Sum(cell => Grid.Temperature[cell]);
+                averageRoomTemperature /= roomCells.Count;
+                averageTemp = averageRoomTemperature;
+                return;
+            }
+
+            SetAverageTempFromOtherSensor();
+        }
+
         /// <inheritdoc />
         public void Sim4000ms(float dt)
         {
-            if (!alreadyCalculated)
+            if (string.IsNullOrEmpty(currentRoomId))
                 OnRoomRebuild();
+            else
+                UpdateAverageTemp();
 
+            UpdateLogicOutput();
+        }
+
+        private void UpdateLogicOutput()
+        {
             if (activateOnWarmerThan)
             {
                 if ((averageTemp <= thresholdTemperature || IsSwitchedOn) &&
@@ -305,13 +351,6 @@ namespace TooManySensors
                     return;
                 Toggle();
             }
-        }
-
-        private void RecalculateAverageRoomTemperature()
-        {
-            float averageRoomTemperature = roomCells.Where(Grid.IsValidCell).Sum(cell => Grid.Temperature[cell]);
-            averageRoomTemperature /= roomCells.Count;
-            averageTemp = averageRoomTemperature;
         }
     }
 }
