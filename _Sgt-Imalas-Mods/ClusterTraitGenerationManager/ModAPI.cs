@@ -1,12 +1,31 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using UtilLibs;
+using static ClusterTraitGenerationManager.STRINGS.CLUSTER_NAMES;
 using static ProcGen.World;
 
 namespace ClusterTraitGenerationManager
 {
     public static class ModAPI
     {
+        public static class CGM_TraitTags
+        {
+            /// <summary>
+            /// Traits with this tag will be shown in the selection screen, even if world rules forbid it.
+            /// 
+            /// The main purpose of this trait tag is to have traits that cannot appear
+            /// by default on planets, but that can be manually added through CGM.This
+            /// can be accomplished with the following trait tags:
+            /// 
+            /// - CGM_OverrideWorldRules_AlwaysAllow
+            /// - StartWorldOnly
+            /// - NonStartWorld
+            /// </summary>
+            public static readonly string OverrideWorldRules_AlwaysAllow = "CGM_OverrideWorldRules_AlwaysAllow";
+        }
+
+
+
         /// <summary>
         /// you can put custom data for the following settings in each world template by adding it under that key to defaultsOverride.data to override the default selected templates and biomes for your world
         /// CGM will generate an alternative version of each planet, depending on its origin those are 
@@ -109,6 +128,8 @@ namespace ClusterTraitGenerationManager
         public const string DefaultSwampWarpBiome = "expansion1::subworlds/swamp/SwampWarpStart";
         public const string DefaultForestStartBiome = "expansion1::subworlds/forest/med_ForestStart";
         public const string DefaultForestWarpBiome = "expansion1::subworlds/forest/ForestWarpStart";
+
+        public const string DefaultCeresStartBiome = "dlc2::subworlds/icecaves/IceCavesStart";
 
         public enum StartAreaType
         {
@@ -234,6 +255,10 @@ namespace ClusterTraitGenerationManager
         {
             if (world != null)
             {
+                if (world.worldTags!=null && world.worldTags.Contains("Ceres"))
+                    return DefaultCeresStartBiome;
+
+
                 if (world.defaultsOverrides != null && world.defaultsOverrides.data != null && world.defaultsOverrides.data.Count > 0)
                 {
                     if (!Warp)
@@ -285,10 +310,16 @@ namespace ClusterTraitGenerationManager
         public const string DefaultSwampWater = "expansion1::subworlds/swamp/SwampMini";
         public const string DefaultForestWater = "subworlds/forest/ForestMiniWater";
 
+        public const string DefaultCeresWater = "dlc2::subworlds/icecaves/IceCavesMiniWater";
+
         public static string GetStartAreaWaterSubworld(ProcGen.World world)
         {
             if (world != null)
             {
+                if (world.worldTags!=null && world.worldTags.Contains("Ceres"))
+                    return DefaultCeresWater;
+
+
                 if (world.defaultsOverrides != null && world.defaultsOverrides.data != null && world.defaultsOverrides.data.Count > 0)
                 {
                     if (world.defaultsOverrides.data.TryGetValue(StartWorld_StartingAreaWaterSubworld_Key, out var SubworldOverride) && SubworldOverride is string)
@@ -330,10 +361,16 @@ namespace ClusterTraitGenerationManager
         public const string DefaultForestStartBase = "bases/forestBase";
         public const string DefaultForestWarpBase = "expansion1::bases/warpworldForestBase";
 
+        public const string DefaultCeresStartBase = "dlc2::bases/ceresBase";
+
         public static string GetStarterBaseTemplate(ProcGen.World world, bool Warp)
         {
             if (world != null)
             {
+                if (world.worldTags!=null && world.worldTags.Contains("Ceres") && !Warp)
+                    return DefaultCeresStartBase;
+
+
                 if (world.defaultsOverrides != null && world.defaultsOverrides.data != null && world.defaultsOverrides.data.Count > 0)
                 {
                     if (!Warp)

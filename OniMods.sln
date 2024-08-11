@@ -116,7 +116,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OniRetroEdition", "_Sgt-Ima
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InvertedItemFilter", "_Sgt-Imalas-Mods\InvertedItemFilter\InvertedItemFilter.csproj", "{14F424C8-92F2-4098-AF87-6E33BFBD8857}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SubPlanetaryTransport", "_Sgt-Imalas-Mods\SubPlanetaryTransport\SubPlanetaryTransport.csproj", "{C050C85A-4070-4781-A09B-7FD2D9F22F86}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ItemRailgun", "_Sgt-Imalas-Mods\SubPlanetaryTransport\ItemRailgun.csproj", "{C050C85A-4070-4781-A09B-7FD2D9F22F86}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BrokenRocketInteriorPortFix", "_Sgt-Imalas-Mods\BrokenRocketInteriorPortFix\BrokenRocketInteriorPortFix.csproj", "{B6BC63AA-520E-46A9-BA10-DBB149BC0CB1}"
 EndProject
@@ -170,7 +170,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Sgt-Imalas-Mods", "_Sgt-Im
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_andr9528-Mods", "_andr9528-Mods", "{1186B31F-04F3-4DDC-8077-FBB1DAB3302B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TooManySensors", "_andr9528-Mods\TooManySensors\TooManySensors.csproj", "{59EABFB8-5C47-492D-88B6-252A3C6C4EE8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TooManySensors", "_andr9528-Mods\TooManySensors\TooManySensors.csproj", "{59EABFB8-5C47-492D-88B6-252A3C6C4EE8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DlcSwapButton", "_Sgt-Imalas-Mods\DlcSwapButton\DlcSwapButton.csproj", "{19E3E492-032E-4228-AF52-078ACE32AF5C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DontCrashMyMods", "_Sgt-Imalas-Mods\DontCrashMyMods\DontCrashMyMods.csproj", "{036BB435-8148-41B5-BFAF-B70A903B3770}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoodByeFrostByte", "_Sgt-Imalas-Mods\GoodByeFrostByte\GoodByeFrostByte.csproj", "{C96F2DB2-3373-41BD-88C8-8251028C691E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MassMoveTo", "_Sgt-Imalas-Mods\MassMoveTo\MassMoveTo.csproj", "{D969C6FC-DADD-4867-8226-94365A6631B8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StoragePiles", "_Sgt-Imalas-Mods\StoragePiles\StoragePiles.csproj", "{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -645,6 +655,36 @@ Global
 		{59EABFB8-5C47-492D-88B6-252A3C6C4EE8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{59EABFB8-5C47-492D-88B6-252A3C6C4EE8}.Release2|Any CPU.ActiveCfg = Release|Any CPU
 		{59EABFB8-5C47-492D-88B6-252A3C6C4EE8}.Release2|Any CPU.Build.0 = Release|Any CPU
+		{19E3E492-032E-4228-AF52-078ACE32AF5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19E3E492-032E-4228-AF52-078ACE32AF5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19E3E492-032E-4228-AF52-078ACE32AF5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19E3E492-032E-4228-AF52-078ACE32AF5C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19E3E492-032E-4228-AF52-078ACE32AF5C}.Release2|Any CPU.ActiveCfg = Release|Any CPU
+		{19E3E492-032E-4228-AF52-078ACE32AF5C}.Release2|Any CPU.Build.0 = Release|Any CPU
+		{036BB435-8148-41B5-BFAF-B70A903B3770}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{036BB435-8148-41B5-BFAF-B70A903B3770}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{036BB435-8148-41B5-BFAF-B70A903B3770}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{036BB435-8148-41B5-BFAF-B70A903B3770}.Release|Any CPU.Build.0 = Release|Any CPU
+		{036BB435-8148-41B5-BFAF-B70A903B3770}.Release2|Any CPU.ActiveCfg = Release|Any CPU
+		{036BB435-8148-41B5-BFAF-B70A903B3770}.Release2|Any CPU.Build.0 = Release|Any CPU
+		{C96F2DB2-3373-41BD-88C8-8251028C691E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C96F2DB2-3373-41BD-88C8-8251028C691E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C96F2DB2-3373-41BD-88C8-8251028C691E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C96F2DB2-3373-41BD-88C8-8251028C691E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C96F2DB2-3373-41BD-88C8-8251028C691E}.Release2|Any CPU.ActiveCfg = Release|Any CPU
+		{C96F2DB2-3373-41BD-88C8-8251028C691E}.Release2|Any CPU.Build.0 = Release|Any CPU
+		{D969C6FC-DADD-4867-8226-94365A6631B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D969C6FC-DADD-4867-8226-94365A6631B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D969C6FC-DADD-4867-8226-94365A6631B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D969C6FC-DADD-4867-8226-94365A6631B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D969C6FC-DADD-4867-8226-94365A6631B8}.Release2|Any CPU.ActiveCfg = Release|Any CPU
+		{D969C6FC-DADD-4867-8226-94365A6631B8}.Release2|Any CPU.Build.0 = Release|Any CPU
+		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Release2|Any CPU.ActiveCfg = Release|Any CPU
+		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Release2|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

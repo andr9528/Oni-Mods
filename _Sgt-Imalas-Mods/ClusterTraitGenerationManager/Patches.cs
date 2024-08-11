@@ -15,6 +15,7 @@ using Klei.CustomSettings;
 using static ClusterTraitGenerationManager.ClusterData.CGSMClusterManager;
 using System.Security.Cryptography;
 using ClusterTraitGenerationManager.ClusterData;
+using System.IO;
 
 namespace ClusterTraitGenerationManager
 {
@@ -73,6 +74,8 @@ namespace ClusterTraitGenerationManager
         [HarmonyPatch(typeof(LoadScreen), "ShowColonySave")]
         public static class LoadScreen_NameFix
         {
+            public static void Prefix() => RemoveFromCache();
+
             public static void Postfix(LoadScreen.SaveGameFileDetails save, LoadScreen __instance)
             {
                 if (save.FileInfo.clusterId == CustomClusterID)
@@ -107,16 +110,26 @@ namespace ClusterTraitGenerationManager
             {
                 if (Game.clusterId == CustomClusterID)
                 {
-                    string settingsCoordinate = CustomGameSettings.Instance.GetSettingsCoordinate().Replace("SNDST-C", "CGM");
+                    string settingsCoordinate = CustomGameSettings.Instance.GetSettingsCoordinate().Replace("SNDST-C", "CGM").Replace("SNDST-A", "CGM");
                     string[] settingCoordinate = CustomGameSettings.ParseSettingCoordinate(settingsCoordinate);
                     __instance.worldSeed.SetText(string.Format((string)global::STRINGS.UI.FRONTEND.PAUSE_SCREEN.WORLD_SEED, (object)settingsCoordinate));
-                    __instance.worldSeed.GetComponent<ToolTip>().toolTip = string.Format((string)global::STRINGS.UI.FRONTEND.PAUSE_SCREEN.WORLD_SEED_TOOLTIP, (object)"CGM", (object)settingCoordinate[2], (object)settingCoordinate[3], (object)settingCoordinate[4]);
+                    __instance.worldSeed.GetComponent<ToolTip>().toolTip = string.Format((string)global::STRINGS.UI.FRONTEND.PAUSE_SCREEN.WORLD_SEED_TOOLTIP, "CGM", settingCoordinate[2], (object)settingCoordinate[3], (object)settingCoordinate[4], settingCoordinate[5]);
 
                 }
             }
         }
-
-
+        public class SaveGamePatch
+        {
+            [HarmonyPatch(typeof(SaveGame), "OnPrefabInit")]
+            public class SaveGame_OnPrefabInit_Patch
+            {
+                public static void Postfix(SaveGame __instance)
+                {
+                    SgtLogger.l("Savegame_OnPrefabInit");
+                    __instance.gameObject.AddOrGet<SaveGameData>();
+                }
+            }
+        }
 
 
         /// <summary>
@@ -128,13 +141,10 @@ namespace ClusterTraitGenerationManager
         {
             public static void Prefix(ColonyDestinationSelectScreen __instance)
             {
+
                 InitExtraWorlds.InitWorlds();
                 OverrideWorldSizeOnDataGetting.ResetCustomSizes();
-
-                if (SettingsCache.clusterLayouts.clusterCache.ContainsKey(CustomClusterID))
-                {
-                    SettingsCache.clusterLayouts.clusterCache.Remove(CustomClusterID);
-                }
+                
                 CGSMClusterManager.selectScreen = __instance;
             }
             public static void Postfix(ColonyDestinationSelectScreen __instance)
@@ -156,14 +166,25 @@ namespace ClusterTraitGenerationManager
                 }
             }
         }
-
+        [HarmonyPatch(typeof(CustomGameSettings))]
+        [HarmonyPatch(nameof(CustomGameSettings.SetMixingSetting))]
+        [HarmonyPatch(new Type[] { typeof(SettingConfig), typeof(string) })]
+        public static class RegenerateOnMixingSettingsChanged
+        {
+            public static void Postfix(CustomGameSettings __instance, SettingConfig config, string value)
+            {
+                if (__instance == null || LoadCustomCluster)
+                    return;
+                RegenerateCGM(__instance, "Mixing Setting "+config.id);
+            }
+        }
         /// <summary>
         /// Regenerates Custom cluster with newly created traits on seed shuffle
         /// </summary>
         [HarmonyPatch(typeof(CustomGameSettings))]
         [HarmonyPatch(nameof(CustomGameSettings.SetQualitySetting))]
         [HarmonyPatch(new Type[] { typeof(SettingConfig), typeof(string) })]
-        public static class TraitShuffler
+        public static class RegenerateOnSeedOrClusterChanged
         {
             public static void Postfix(CustomGameSettings __instance, SettingConfig config, string value)
             {
@@ -172,20 +193,23 @@ namespace ClusterTraitGenerationManager
 
                 if (config.id != "WorldgenSeed" && config.id != "ClusterLayout")
                     return;
+                SgtLogger.l(config.id, "cgm setting changed");
                 RegenerateCGM(__instance, config.id);
             }
         }
         public static void RegenerateCGM(CustomGameSettings __instance, string changedConfigID)
         {
+            if (StillLoading || ApplyCustomGen.IsGenerating)
+                return;
+
             if (CGSMClusterManager.LastGenFailed)
             {
                 SgtLogger.l("Skipping regenerating due to failed previous worldgen.");
 
                 return;
             }
-
             string clusterPath = __instance.GetCurrentQualitySetting(CustomGameSettingConfigs.ClusterLayout).id;
-            if (clusterPath == null || clusterPath.Count() == 0)
+            if (clusterPath == null || clusterPath.Length == 0)
             {
                 ///default is no path selected, this picks either classic Terra on "classic" selection/base game or Terrania on "spaced out" selection
                 if (DlcManager.IsExpansion1Active())
@@ -223,10 +247,10 @@ namespace ClusterTraitGenerationManager
             public static void Postfix(ColonyDestinationSelectScreen __instance)
             {
                 CGSMClusterManager.selectScreen = __instance;
-                if (__instance.newGameSettings == null)
+                if (__instance.newGameSettingsPanel == null)
                     return;
 
-                RegenerateCGM(__instance.newGameSettings.settings, "Coordinate");
+                RegenerateCGM(__instance.newGameSettingsPanel.settings, "Coordinate");
             }
         }
 
@@ -234,8 +258,12 @@ namespace ClusterTraitGenerationManager
         [HarmonyPatch(nameof(SpacecraftManager.RestoreDestinations))]
         public static class VanillaStarmap_InsertModified
         {
+            public static bool SkipPatch = false;
             public static bool Prefix(SpacecraftManager __instance)
             {
+                if (SkipPatch) 
+                    return true;
+
                 SgtLogger.l("SpacecraftManager.RestoreDestinations");
                 if (CGSMClusterManager.LoadCustomCluster && CustomCluster != null)
                 {
@@ -300,9 +328,9 @@ namespace ClusterTraitGenerationManager
             public static void Postfix(ColonyDestinationSelectScreen __instance)
             {
                 CGSMClusterManager.selectScreen = __instance;
-                if (__instance.newGameSettings == null)
+                if (__instance.newGameSettingsPanel == null)
                     return;
-                RegenerateCGM(__instance.newGameSettings.settings, "Coordinate");
+                RegenerateCGM(__instance.newGameSettingsPanel.settings, "Coordinate");
             }
         }
 
@@ -350,7 +378,7 @@ namespace ClusterTraitGenerationManager
             public static void Postfix()
             {
                 string coreKey = string.Empty;
-                string cryoVolcano = string.Empty;
+                string cryoVolcano = string.Empty; 
 
 
                 foreach (var trait in SettingsCache.GetCachedWorldTraitNames())
@@ -382,6 +410,24 @@ namespace ClusterTraitGenerationManager
         }
 
 
+
+        ///// <summary>
+        ///// make WorldMixing (not subworld mixing!) disable with cgm cluster
+        ///// </summary>
+        //[HarmonyPatch(typeof(SettingsCache))]
+        //[HarmonyPatch(nameof(SettingsCache.LoadWorldMixingSettings))]
+        //public static class LoadWorldMixingSettings_Postfix_Exclusion
+        //{
+        //    public static void Postfix()
+        //    {
+        //        foreach(var worldMixingSetting in SettingsCache.worldMixingSettings.Values)
+        //        {
+        //            if (worldMixingSetting != null && worldMixingSetting.forbiddenClusterTags != null && !worldMixingSetting.forbiddenClusterTags.Contains(CustomClusterClusterTag))
+        //                worldMixingSetting.forbiddenClusterTags.Add(CustomClusterClusterTag);
+        //        }
+        //    }
+        //}
+
         /// <summary>
         /// Prevents the normal cluster menu from closing when the custom cluster menu is open
         /// </summary>
@@ -398,19 +444,25 @@ namespace ClusterTraitGenerationManager
         }
 
         /// <summary>
-        /// Allow planets to load into the world cache if 
-        /// - they are in a cluster (default condition)
-        /// - have "CGM"/"CGSM" in their Name (added)
+        /// Load missing moonlet type
         /// </summary>
         [HarmonyPatch(typeof(Worlds))]
         [HarmonyPatch(nameof(Worlds.LoadReferencedWorlds))]
-        public static class AllowUnusedWorldTemplatesToLoadIntoCache
+        public static class LoadAdditionalWorlds
         {
             const string DLC_WorldNamePrefix = "expansion1::worlds/";
             const string Base_WorldNamePrefix = "worlds/";
 
+            /// <summary>
+            /// these got randomly removed on 26.07.2024, breaking existing presets.
+            /// readding them while they still exist to fix those
+            /// </summary>
+
             public static void Prefix(ISet<string> referencedWorlds)
             {
+                if (!DlcManager.IsExpansion1Active())
+                    return;
+
                 SgtLogger.l("checking if any moonlets should be added");
                 List<string> additionalWorlds = new List<string>();
                 foreach(var item in referencedWorlds)
@@ -418,7 +470,7 @@ namespace ClusterTraitGenerationManager
                     string path = SettingsCache.RewriteWorldgenPathYaml(item);
                     if (ModAssets.IsModdedAsteroid(path,out _))
                         continue;
-
+                    
                     if (ModAssets.Moonlets.Any(item.Contains))
                     {
                         string outerWorld = item.Replace("Start", string.Empty).Replace("Warp", string.Empty);
@@ -430,8 +482,9 @@ namespace ClusterTraitGenerationManager
                         if (!referencedWorlds.Contains(startWorld) && !additionalWorlds.Contains(startWorld))
                             additionalWorlds.Add(startWorld);
                     }
+
                 }
-                foreach(var item in additionalWorlds)
+                foreach (var item in additionalWorlds)
                 {
                     SgtLogger.l("adding additional world: " + item);
                     referencedWorlds.Add(item);
@@ -459,7 +512,15 @@ namespace ClusterTraitGenerationManager
                 List<KeyValuePair<string, ProcGen.World>> toAdd = new List<KeyValuePair<string, ProcGen.World>>();
                 foreach (var sourceWorld in __instance.worldCache)
                 {
+
+                    if ((int)sourceWorld.Value.skip >= 99 || sourceWorld.Value.moduleInterior)
+                        continue;
+
                     ///Moonlets already exist in all 3 configurations
+                    if (CGSMClusterManager.SkipWorldForDlcReasons(sourceWorld.Key, sourceWorld.Value) ||ModAssets.Moonlets.Contains(sourceWorld.Key))
+                    {
+                        continue;
+                    }
 
                     string BaseName = sourceWorld.Key.Replace("Start", "").Replace("Outer", "").Replace("Warp", "");
 
@@ -973,6 +1034,7 @@ namespace ClusterTraitGenerationManager
                 }
                 foreach (var item in toAdd)
                 {
+                    item.Value.isModded = true;
                     __instance.worldCache[item.Key] = item.Value;
                 }
             }
@@ -1015,7 +1077,7 @@ namespace ClusterTraitGenerationManager
 
                     }
                 }
-                if (e is TemplateSpawningException)
+                if (e is WorldgenException)
                 {
                     errorMessage = e.Message;
                 }
@@ -1086,6 +1148,7 @@ namespace ClusterTraitGenerationManager
                     return;
                 if ((target != "OverworldDensityMin") && (target != "OverworldDensityMax") && (target != "OverworldAvoidRadius") && (target != "OverworldMinNodes") && (target != "OverworldMaxNodes"))
                     return;
+
                 __result = GetMultipliedSizeFloat(__result, __instance);
             }
         }
@@ -1170,15 +1233,17 @@ namespace ClusterTraitGenerationManager
 
             if (worldgen != null && worldgen.world != null && worldgen.world.filePath != null &&
                 CGSMClusterManager.CustomCluster.HasStarmapItem(worldgen.world.filePath, out var item)
-                && (item.CurrentSizeMultiplier < 1)
+                && (item.CurrentSizeMultiplier < 1 && !item.DefaultDimensions)
                 )
             {
                 if (Mathf.Approximately(item.CurrentSizeMultiplier, 1))
                     return inputNumber;
 
-                SgtLogger.l($"changed input float: {inputNumber}, multiplied: {item.ApplySizeMultiplierToValue((float)inputNumber)}", "CGM WorldgenModifier");
+                float newValue = Mathf.RoundToInt(item.ApplySizeMultiplierToValue((float)inputNumber));
 
-                return item.ApplySizeMultiplierToValue((float)inputNumber);
+                SgtLogger.l($"changed input float: {inputNumber}, multiplied: {newValue}", "CGM WorldgenModifier");
+
+                return newValue;
             }
             return inputNumber;
         }
@@ -1187,14 +1252,14 @@ namespace ClusterTraitGenerationManager
 
             if (worldgen != null && worldgen.world != null && worldgen.world.filePath != null &&
                 CGSMClusterManager.CustomCluster.HasStarmapItem(worldgen.world.filePath, out var item)
-                && (item.CurrentSizeMultiplier < 1)
+                && (item.CurrentSizeMultiplier < 1 && !item.DefaultDimensions)
                 )
             {
 
                 if (Mathf.Approximately(item.CurrentSizeMultiplier, 1))
                     return inputNumber;
 
-                SgtLogger.l($"changed input int: {inputNumber}, multiplied: {item.ApplySizeMultiplierToValue((float)inputNumber)}", "CGM WorldgenModifier");
+                SgtLogger.l($"GetMultipliedSizeInt: {inputNumber}, multiplied: {item.ApplySizeMultiplierToValue((float)inputNumber)}", "CGM WorldgenModifier");
 
 
                 return Mathf.RoundToInt(item.ApplySizeMultiplierToValue((float)inputNumber));
@@ -1205,38 +1270,47 @@ namespace ClusterTraitGenerationManager
 
 
 
-        [HarmonyPatch(typeof(Worlds))]
-        [HarmonyPatch(nameof(Worlds.GetWorldData))]
+        [HarmonyPatch(typeof(Worlds), nameof(Worlds.GetWorldData),new Type[] { typeof(string) })]
         public static class OverrideWorldSizeOnDataGetting
         {
             public static Dictionary<string, Vector2I> OriginalPlanetSizes = new Dictionary<string, Vector2I>();
+            static Dictionary<string, float> OriginalWorldTraitScales = new();
 
             public static void ResetCustomSizes()
             {
                 foreach (var world in SettingsCache.worlds.worldCache)
                 {
-                    if (OriginalPlanetSizes.ContainsKey(world.Key))
+                    if (OriginalPlanetSizes.TryGetValue(world.Key, out var originalSize))
                     {
-                        SgtLogger.l("Resetting custom planet size to " + world.Key + ", new size: " + OriginalPlanetSizes[world.Key].X + "x" + OriginalPlanetSizes[world.Key].Y, "CGM WorldgenModifier");
-                        world.Value.worldsize = OriginalPlanetSizes[world.Key];
+                        SgtLogger.l("Resetting custom planet size to " + world.Key + ", new size: " + originalSize.X + "x" + originalSize.Y, "CGM WorldgenModifier");
+                        world.Value.worldsize = originalSize;
+                    }
+                    if(OriginalWorldTraitScales.TryGetValue(world.Key, out var originalScale))
+                    {
+                        world.Value.worldTraitScale = originalScale;
                     }
                 }
                 //OriginalPlanetSizes.Clear();
             }
-            public static void Postfix(Worlds __instance, string name, ref ProcGen.World __result)
+            public static void Postfix(string name, ref ProcGen.World __result)
             {
                 if (__result != null && name != null)
                 {
                     if (!OriginalPlanetSizes.ContainsKey(name))
                         OriginalPlanetSizes.Add(name, __result.worldsize);
+                    if (!OriginalWorldTraitScales.ContainsKey(name))
+                        OriginalWorldTraitScales.Add(name, __result.worldTraitScale);
 
-
-                    if (CGSMClusterManager.CustomCluster != null && CGSMClusterManager.CustomCluster.HasStarmapItem(name, out var item))
+                    if (CGSMClusterManager.CustomCluster != null && CGSMClusterManager.CustomCluster.HasStarmapItem(name, out var item) && !item.DefaultDimensions)
                     {
                         if (__result.worldsize != item.CustomPlanetDimensions)
                         {
                             __result.worldsize = item.CustomPlanetDimensions;
                             SgtLogger.l("CGM generating, applied custom planet size to " + item.DisplayName + ", new size: " + __result.worldsize.ToString(), "CGM WorldgenModifier");
+                        }
+                        if (OriginalWorldTraitScales.TryGetValue(name, out var originalTraitScale))
+                        {
+                            __result.worldTraitScale = item.ApplySizeMultiplierToValue(originalTraitScale);
                         }
                     }
                     else
@@ -1248,6 +1322,10 @@ namespace ClusterTraitGenerationManager
                                 __result.worldsize = OriginalPlanetSizes[name];
                                 SgtLogger.l("CGM not generating, worlgen size for " + name + " set to default: " + __result.worldsize.ToString(), "CGM WorldgenModifier");
                             }
+                        }
+                        if (OriginalWorldTraitScales.TryGetValue(name, out var originalTraitScale))
+                        {
+                            __result.worldTraitScale = originalTraitScale;                            
                         }
                     }
                 }
@@ -1264,7 +1342,7 @@ namespace ClusterTraitGenerationManager
             /// <summary>
             /// Inserting Custom Traits
             /// </summary>
-            public static void Prefix(WorldGenSettings settings)
+            public static void Prefix(WorldGenSettings settings, SeededRandom myRandom)
             {
                 const string geyserKey = "GEYSER";
                 if (CGSMClusterManager.LoadCustomCluster && CGSMClusterManager.CustomCluster != null)
@@ -1272,8 +1350,11 @@ namespace ClusterTraitGenerationManager
                     if (!OriginalGeyserAmounts.ContainsKey(settings.world.filePath))
                         OriginalGeyserAmounts[settings.world.filePath] = new Dictionary<List<string>, int>();
 
-                    if (CGSMClusterManager.CustomCluster.HasStarmapItem(settings.world.filePath, out var item) && !Mathf.Approximately(item.CurrentSizeMultiplier, 1))
+                    if (CGSMClusterManager.CustomCluster.HasStarmapItem(settings.world.filePath, out var item) && !item.DefaultDimensions && !Mathf.Approximately(item.CurrentSizeMultiplier, 1))
                     {
+                        int seed = myRandom.seed;
+                        SgtLogger.l(seed.ToString(), "geyserSeed");
+
                         float SizeModifier = item.CurrentSizeMultiplier;
 
                         if (Mathf.Approximately(SizeModifier, 1))
@@ -1291,17 +1372,16 @@ namespace ClusterTraitGenerationManager
                                     OriginalGeyserAmounts[settings.world.filePath][WorldTemplateRule.names] = WorldTemplateRule.times;
                                 }
 
-
-
                                 float newGeyserAmount = (((float)OriginalGeyserAmounts[settings.world.filePath][WorldTemplateRule.names]) * SizeModifier);
                                 SgtLogger.l(string.Format("Adjusting geyser roll amount to worldsize for {0}; {1} -> {2}", WorldTemplateRule.names.FirstOrDefault(), OriginalGeyserAmounts[settings.world.filePath][WorldTemplateRule.names], newGeyserAmount), item.id);
+                                
+                                float chance = ((float)new KRandom(seed + WorldTemplateRule.names.First().GetHashCode()).Next(100)) / 100f;
 
                                 if (newGeyserAmount > 1)
                                 {
                                     WorldTemplateRule.times = Mathf.FloorToInt(newGeyserAmount);
                                     SgtLogger.l("new Geyser amount has a chance of " + newGeyserAmount % 1f + " for an additional spawn, rolling...", "CGM WorldgenModifier");
 
-                                    float chance = ((float)new System.Random(CGSMClusterManager.CurrentSeed + BitConverter.ToInt32(MD5.Create().ComputeHash(Encoding.Default.GetBytes(WorldTemplateRule.names.First())), 0)).Next(100)) / 100f;
                                     SgtLogger.l("rolled: " + chance);
                                     //chance = 0;///always atleast 1
                                     if (chance <= (newGeyserAmount % 1f))
@@ -1318,9 +1398,7 @@ namespace ClusterTraitGenerationManager
                                 }
                                 else
                                 {
-
                                     SgtLogger.l("new Geyser amount below 1, rolling for the geyser to appear at all...");
-                                    float chance = ((float)new System.Random(CGSMClusterManager.CurrentSeed + BitConverter.ToInt32(MD5.Create().ComputeHash(Encoding.Default.GetBytes(WorldTemplateRule.names.First())), 0)).Next(100)) / 100f;
                                     SgtLogger.l("rolled: " + chance);
                                     //chance = 0;///always atleast 1
                                     if (chance <= newGeyserAmount)
@@ -1422,6 +1500,9 @@ namespace ClusterTraitGenerationManager
                     return;
 
                 SgtLogger.l("Applying CGM custom starmap");
+
+                HashSet<AxialI> UsedLocations = new();
+
                 __instance.poiPlacements.Clear();
                 int seed = __instance.seed;
                 var worldPlacements = GeneratedLayout.worldPlacements;
@@ -1433,9 +1514,10 @@ namespace ClusterTraitGenerationManager
                     int pos = worldPlacements.FindIndex(placement => placement.world == placementData.Value);
                     if (pos != -1)
                     {
-                        __instance.worlds[pos].SetClusterLocation(placementData.Key);
+                        __instance.worlds[pos].SetClusterLocation(placementData.Key); 
+                        UsedLocations.Add(placementData.Key);
                     }
-                    else
+                    else if (ModAssets.IsSOPOI(placementData.Value))
                     {
                         if (placementData.Value == ModAssets.RandomPOIId)
                         {
@@ -1445,6 +1527,7 @@ namespace ClusterTraitGenerationManager
                         }
                         else
                             __instance.poiPlacements.Add(placementData.Key, placementData.Value);
+                        UsedLocations.Add(placementData.Key);
                     }
 
                 }
@@ -1456,6 +1539,15 @@ namespace ClusterTraitGenerationManager
         {
             public static void Postfix(MinionSelectScreen __instance)
             {
+                if (CGSMClusterManager.LoadCustomCluster && CGSMClusterManager.CustomCluster != null)
+                {
+                    if (SaveGameData.Instance != null)
+                    {
+                        SgtLogger.l("writing custom cluster tags");
+                        SaveGameData.WriteCustomClusterTags(CGSMClusterManager.GeneratedLayout.clusterTags);
+                    }
+                }
+
                 if (Config.Instance.AutomatedClusterPresets)
                     return;
 
@@ -1481,7 +1573,7 @@ namespace ClusterTraitGenerationManager
 
         [HarmonyPatch(typeof(Cluster))]
         [HarmonyPatch(typeof(Cluster), MethodType.Constructor)]
-        [HarmonyPatch(new Type[] { typeof(string), typeof(int), typeof(List<string>), typeof(bool), typeof(bool) })]
+        [HarmonyPatch(new Type[] { typeof(string), typeof(int), typeof(List<string>), typeof(bool), typeof(bool), typeof(bool) })]
         public static class ApplyCustomGen
         {
             public static bool IsGenerating = false;
@@ -1489,24 +1581,72 @@ namespace ClusterTraitGenerationManager
             /// Setting ClusterID to custom cluster if it should load
             /// 
             /// </summary>
-            public static void Prefix(ref string name)
+            public static void Prefix(ref string clusterName)
             {
                 //CustomLayout
                 if (CGSMClusterManager.LoadCustomCluster)
                 {
                     SgtLogger.l("Custom ClusterConstructor has started");
+
+                    IsGenerating = true;
+
+                    //doesnt work, gotta do it manually
+                    //CustomGameSettings.Instance.RemoveInvalidMixingSettings();
+
+                    //foreach (var worldMixingSetting in SettingsCache.worldMixingSettings.Values)
+                    //{
+                    //    if (worldMixingSetting != null && worldMixingSetting.forbiddenClusterTags != null && !worldMixingSetting.forbiddenClusterTags.Contains(CustomClusterClusterTag))
+                    //        worldMixingSetting.forbiddenClusterTags.Add(CustomClusterClusterTag);
+                    //}
+                    //List<string> ToDisableMixings = new();
+                    //foreach(var mix in CustomGameSettings.Instance.CurrentMixingLevelsBySetting)
+                    //{
+                    //    var mixingSetting = SettingsCache.TryGetCachedWorldMixingSetting(mix.Key);
+                    //    if (mixingSetting != null)
+                    //    {
+                    //        SgtLogger.l("disabling " + mix.Key);
+                    //        ToDisableMixings.Add(mix.Key);
+                    //    }
+
+                    //    SgtLogger.l(mix.Key+": " + mix.Value, "current mixing setting");
+                    //}
+                    //foreach(var todisable in ToDisableMixings)
+                    //{
+                    //}
+
+                    //dirty manual exclusion to fix crash
+                    CustomGameSettings.Instance.CurrentMixingLevelsBySetting["CeresAsteroidMixing"] = WorldMixingSettingConfig.DisabledLevelId;
+                    if(DlcManager.IsContentOwned(DlcManager.DLC2_ID) && DlcManager.IsContentSubscribed(DlcManager.DLC2_ID) && CustomCluster.HasCeresAsteroid)
+                    {
+                        SgtLogger.l("Enabling Frosty Planet for Custom Cluster");
+                        CustomGameSettings.Instance.CurrentMixingLevelsBySetting["DLC2_ID"] = DlcMixingSettingConfig.EnabledLevelId;
+                    }
                     //if (CGSMClusterManager.CustomCluster == null)
                     //{
                     //    ///Generating custom cluster if null
                     //    CGSMClusterManager.AddCustomClusterAndInitializeClusterGen();
                     //}
-                    name = CGSMClusterManager.CustomClusterID;
+                    clusterName = CGSMClusterManager.CustomClusterID;
                     IsGenerating = true;
                 }
             }
 
 
         }
+        //[HarmonyPatch(typeof(WorldgenMixing), nameof(WorldgenMixing.DoWorldMixingInternal))]
+        //public static class Worldmixing_Patch
+        //{
+        //    public static void Prefix(MutatedClusterLayout mutatedClusterLayout, int seed)
+        //    {
+        //        var layout = mutatedClusterLayout.layout;
+        //        SgtLogger.l(layout.name, "DoMixingInternal");
+        //        SgtLogger.l(layout.clusterTags.Count()+"", "TagCount");
+        //        foreach(var tag in layout.clusterTags)
+        //        {
+        //            SgtLogger.l(tag, "clusterTag");
+        //        }
+        //    }
+        //}
         [HarmonyPatch(typeof(MainMenu), nameof(MainMenu.OnSpawn))]
         public static class MainMenu_Initialize_Patch
         {
@@ -1516,7 +1656,10 @@ namespace ClusterTraitGenerationManager
                 borderSizeMultiplier = 1f;
                 WorldSizeMultiplier = 1f;
                 LoadCustomCluster = false;
+                StillLoading = false;
+                CGSMClusterManager.RemoveFromCache();
             }
         }
+        public static bool StillLoading = true;
     }
 }

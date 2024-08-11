@@ -11,11 +11,11 @@ namespace CrittersShedFurOnBrush
     {
         public override void OnLoad(Harmony harmony)
         {
-            base.OnLoad(harmony);
             PUtil.InitLibrary(false);
             new POptions().RegisterOptions(this, typeof(Config));
             ModAssets.InitSheddables();
             SgtLogger.LogVersion(this, harmony);
+            base.OnLoad(harmony);
         }
     }
 }

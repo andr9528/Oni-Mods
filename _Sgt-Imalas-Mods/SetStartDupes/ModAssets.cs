@@ -16,12 +16,14 @@ using TUNING;
 using UnityEngine;
 using UnityEngine.UI;
 using UtilLibs;
+using static BestFit;
 using static KSerialization.DebugLog;
 using static SetStartDupes.DupeTraitManager;
 using static SetStartDupes.STRINGS.UI;
 using static SetStartDupes.STRINGS.UI.DSS_OPTIONS;
 using static STRINGS.DUPLICANTS;
 using static STRINGS.UI.DETAILTABS;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace SetStartDupes
 {
@@ -35,6 +37,8 @@ namespace SetStartDupes
         public static bool EditingJorge = false;
 
         public static GameObject StartPrefab;
+
+        public static Personality ToShufflePersonality;
 
         public static CharacterContainer SingleCharacterContainer;
         public static GameObject CryoDupeToApplyStatsOn = null;
@@ -105,32 +109,35 @@ namespace SetStartDupes
                 parentScreen = value;
             }
         }
+
+
         private static GameObject parentScreen = null;
 
 
-        public static CarePackageInfo[] GetAdditionalCarePackages(Immigration __instance)
+        public static CarePackageInfo[] GetAdditionalCarePackages()
         {
             bool Dlc1Active = DlcManager.IsExpansion1Active();
+            bool Dlc2ActiveForSave = SaveLoader.Instance.GameInfo.dlcIds.Contains(DlcManager.DLC2_ID);
 
             var carePackages = new List<CarePackageInfo>()
             {          
                 ///missing seeds:
-                new CarePackageInfo(EvilFlowerConfig.SEED_ID, 1f, () => __instance.CycleCondition(96) && __instance.DiscoveredCondition((Tag) EvilFlowerConfig.ID) || __instance.CycleCondition(500)),
-                new CarePackageInfo(BulbPlantConfig.SEED_ID, 1f, () => __instance.CycleCondition(36) && __instance.DiscoveredCondition((Tag) BulbPlantConfig.ID) || __instance.CycleCondition(500)),
-                new CarePackageInfo(BeanPlantConfig.SEED_ID, 3f, () => __instance.CycleCondition(48) && __instance.DiscoveredCondition((Tag) BeanPlantConfig.ID) || __instance.CycleCondition(500)),
-                new CarePackageInfo(ColdWheatConfig.SEED_ID, 3f, () => __instance.CycleCondition(48) && __instance.DiscoveredCondition((Tag) ColdWheatConfig.ID) || __instance.CycleCondition(500)),
-                new CarePackageInfo(SeaLettuceConfig.SEED_ID, 3f, () => __instance.CycleCondition(48) && __instance.DiscoveredCondition((Tag) SeaLettuceConfig.ID) || __instance.CycleCondition(500)),
-                new CarePackageInfo(SaltPlantConfig.SEED_ID, 3f, () => __instance.CycleCondition(48) && __instance.DiscoveredCondition((Tag) SaltPlantConfig.ID) || __instance.CycleCondition(500)),
+                new CarePackageInfo(EvilFlowerConfig.SEED_ID, 1f, () => Immigration.CycleCondition(96) && Immigration.DiscoveredCondition((Tag) EvilFlowerConfig.ID) || Immigration.CycleCondition(500)),
+                new CarePackageInfo(BulbPlantConfig.SEED_ID, 1f, () => Immigration.CycleCondition(36) && Immigration.DiscoveredCondition((Tag) BulbPlantConfig.ID) || Immigration.CycleCondition(500)),
+                new CarePackageInfo(BeanPlantConfig.SEED_ID, 3f, () => Immigration.CycleCondition(48) && Immigration.DiscoveredCondition((Tag) BeanPlantConfig.ID) || Immigration.CycleCondition(500)),
+                new CarePackageInfo(ColdWheatConfig.SEED_ID, 3f, () => Immigration.CycleCondition(48) && Immigration.DiscoveredCondition((Tag) ColdWheatConfig.ID) || Immigration.CycleCondition(500)),
+                new CarePackageInfo(SeaLettuceConfig.SEED_ID, 3f, () => Immigration.CycleCondition(48) && Immigration.DiscoveredCondition((Tag) SeaLettuceConfig.ID) || Immigration.CycleCondition(500)),
+                new CarePackageInfo(SaltPlantConfig.SEED_ID, 3f, () => Immigration.CycleCondition(48) && Immigration.DiscoveredCondition((Tag) SaltPlantConfig.ID) || Immigration.CycleCondition(500)),
 
                 ///missing minerals:
-                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.Granite).tag.ToString(), 1000f, (Func<bool>) (() => __instance.CycleCondition(24) && __instance.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.Granite).tag)|| __instance.CycleCondition(500))),
-                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.Obsidian).tag.ToString(), 1000f, (Func<bool>) (() => __instance.CycleCondition(24) && __instance.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.Obsidian).tag)|| __instance.CycleCondition(500))),
-                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.Katairite).tag.ToString(), 1000f, (Func<bool>) (() => __instance.CycleCondition(48) && __instance.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.Katairite).tag)|| __instance.CycleCondition(500))),
+                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.Granite).tag.ToString(), 1000f, (Func<bool>) (() => Immigration.CycleCondition(24) && Immigration.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.Granite).tag)|| Immigration.CycleCondition(500))),
+                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.Obsidian).tag.ToString(), 1000f, (Func<bool>) (() => Immigration.CycleCondition(24) && Immigration.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.Obsidian).tag)|| Immigration.CycleCondition(500))),
+                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.Katairite).tag.ToString(), 1000f, (Func<bool>) (() => Immigration.CycleCondition(48) && Immigration.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.Katairite).tag)|| Immigration.CycleCondition(500))),
 
                 ///missing ores+metals
-                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.IronOre).tag.ToString(), 2000f, (Func<bool>) (() => __instance.CycleCondition(12) && __instance.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.IronOre).tag)|| __instance.CycleCondition(500))),
-                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.Wolframite).tag.ToString(), 1000f, (Func<bool>) (() => __instance.CycleCondition(48) && __instance.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.Wolframite).tag)|| __instance.CycleCondition(500))),
-                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.Tungsten).tag.ToString(), 200f, (Func<bool>) (() => __instance.CycleCondition(48) && __instance.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.Tungsten).tag)|| __instance.CycleCondition(500))),
+                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.IronOre).tag.ToString(), 2000f, (Func<bool>) (() => Immigration.CycleCondition(12) && Immigration.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.IronOre).tag)|| Immigration.CycleCondition(500))),
+                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.Wolframite).tag.ToString(), 1000f, (Func<bool>) (() => Immigration.CycleCondition(48) && Immigration.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.Wolframite).tag)|| Immigration.CycleCondition(500))),
+                new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.Tungsten).tag.ToString(), 200f, (Func<bool>) (() => Immigration.CycleCondition(48) && Immigration.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.Tungsten).tag)|| Immigration.CycleCondition(500))),
 
       
             };
@@ -139,18 +146,28 @@ namespace SetStartDupes
                 carePackages.AddRange( new List<CarePackageInfo>()
                 {
                     ///missing ores
-                    new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.UraniumOre).tag.ToString(), 100f, () => __instance.CycleCondition(48)&& __instance.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.UraniumOre).tag) || __instance.CycleCondition(500)),
+                    new CarePackageInfo(ElementLoader.FindElementByHash(SimHashes.UraniumOre).tag.ToString(), 100f, () => Immigration.CycleCondition(48)&& Immigration.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.UraniumOre).tag) || Immigration.CycleCondition(500)),
                     
                     ///missing seeds
-                    new CarePackageInfo(SwampHarvestPlantConfig.SEED_ID, 3f, () => __instance.CycleCondition(24) && __instance.DiscoveredCondition((Tag) SwampHarvestPlantConfig.ID) || __instance.CycleCondition(500)),
-                    new CarePackageInfo(ToePlantConfig.SEED_ID, 3f, () => __instance.CycleCondition(48) && __instance.DiscoveredCondition((Tag) ToePlantConfig.ID) || __instance.CycleCondition(500)),
-                    new CarePackageInfo("CritterTrapPlantSeed", 1f, () => __instance.CycleCondition(96)&& __instance.DiscoveredCondition((Tag) CritterTrapPlantConfig.ID) || __instance.CycleCondition(500)),
+                    new CarePackageInfo(SwampHarvestPlantConfig.SEED_ID, 3f, () => Immigration.CycleCondition(24) && Immigration.DiscoveredCondition((Tag) SwampHarvestPlantConfig.ID) || Immigration.CycleCondition(500)),
+                    new CarePackageInfo(ToePlantConfig.SEED_ID, 3f, () => Immigration.CycleCondition(48) && Immigration.DiscoveredCondition((Tag) ToePlantConfig.ID) || Immigration.CycleCondition(500)),
+                    new CarePackageInfo("CritterTrapPlantSeed", 1f, () => Immigration.CycleCondition(96)&& Immigration.DiscoveredCondition((Tag) CritterTrapPlantConfig.ID) || Immigration.CycleCondition(500)),
 
                     ///missing critters
-                    new CarePackageInfo(BabyBeeConfig.ID, 1f, () => __instance.CycleCondition(24) && (__instance.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.UraniumOre).tag)||__instance.DiscoveredCondition((Tag) BabyBeeConfig.ID)) || __instance.CycleCondition(500)),
+                    new CarePackageInfo(BabyBeeConfig.ID, 1f, () => Immigration.CycleCondition(24) && (Immigration.DiscoveredCondition(ElementLoader.FindElementByHash(SimHashes.UraniumOre).tag)||Immigration.DiscoveredCondition((Tag) BabyBeeConfig.ID)) || Immigration.CycleCondition(500)),
 
                 });
             }
+
+            if (Dlc2ActiveForSave)
+            {
+                carePackages.AddRange(new List<CarePackageInfo>()
+                {
+                    ///carved lumen quartz
+                    new CarePackageInfo(PinkRockCarvedConfig.ID, 1f, () => Immigration.CycleCondition(48) || Immigration.CycleCondition(500))                    
+                });
+            }
+
             return carePackages.ToArray();
         }
         public static void LoadAssets()
@@ -308,9 +325,9 @@ namespace SetStartDupes
             JoyResponseOutfitTarget.FromMinion(go).WriteFacadeId(joyResponseOutfitTarget.ReadFacadeId());
         }
 
-        public static void ApplySkinFromPersonality(Personality personality, MinionStartingStats stats)
+        public static void ApplySkinFromPersonality(Personality personality, MinionStartingStats stats, bool ForceOverideReactions = false)
         {
-            if (Config.Instance.SkinsDoReactions)
+            if (Config.Instance.SkinsDoReactions || ForceOverideReactions)
             {
                 if (!Config.Instance.NoJoyReactions)
                 {
@@ -334,6 +351,10 @@ namespace SetStartDupes
             stats.GenderStringKey = personality.genderStringKey;
             stats.NameStringKey = personality.nameStringKey;
             stats.voiceIdx = ModApi.GetVoiceIdxOverrideForPersonality(personality.nameStringKey);
+            if (ForceOverideReactions)
+            {
+                stats.Name = personality.Name;
+            }
         }
 
 
@@ -572,7 +593,7 @@ namespace SetStartDupes
             if (trait.id == DUPLICANTSTATS.INVALID_TRAIT_VAL.id)
                 return false;
 
-            return trait.dlcId == null || trait.dlcId == "" || trait.dlcId == DlcManager.GetHighestActiveDlcId();
+            return string.IsNullOrEmpty(trait.dlcId) || DlcManager.IsDlcListValidForCurrentContent (new string[] { trait.dlcId });
         }
 
         public static class Colors
@@ -887,5 +908,63 @@ namespace SetStartDupes
         {
             return possibleStickerTypes.GetRandom();
         }
+
+        public static Dictionary<CharacterContainer, GameObject> TraitRerollButtons = new();
+        public static Dictionary<CharacterContainer, GameObject> PersonalityLockButtons = new();
+        static HashSet<CharacterContainer> LockedContainers = new HashSet<CharacterContainer>();
+
+        public static void UpdateTraitLockButton(CharacterContainer container)
+        {
+            if(TraitRerollButtons.TryGetValue(container,out var rerollTraitBtn))
+            {
+                var type = GetTraitListOfTrait(UnityTraitRerollingScreen.GetTraitId(container));
+                ApplyTraitStyleByKey(rerollTraitBtn.GetComponent<KImage>(), type);
+                UIUtils.TryChangeText(rerollTraitBtn.transform, "Text", UnityTraitRerollingScreen.GetTraitName(container));
+            }
+        }
+
+
+        public static bool LockedContainer(CharacterContainer instance)
+        {
+            return LockedContainers.Contains(instance);
+        }
+
+        public static void ToggleContainerPersonalityLock(CharacterContainer container)
+        {
+            SetContainerPersonalityLock(container,!LockedContainer(container));
+        }
+
+        public static void SetContainerPersonalityLock(CharacterContainer container,bool lockPersonality)
+        {
+            if(lockPersonality && !LockedContainers.Contains(container))
+            {
+                LockedContainers.Add(container);
+            }
+            else
+                LockedContainers.Remove(container);
+            UpdatePersonalityLockButton(container);
+
+        }
+        public static void UpdatePersonalityLockButton(CharacterContainer container)
+        {
+            if (PersonalityLockButtons.TryGetValue(container, out var rerollTraitBtn))
+            {
+                bool locked = LockedContainer(container);
+
+                var personality = container.stats?.personality;
+                Sprite lockIcon = locked ? Assets.GetSprite("lock"): Assets.GetSprite(UnlockIcon);
+
+                Sprite dupeIcon = personality != null ? personality.GetMiniIcon() : Assets.GetSprite("unknown");
+                if (dupeIcon == null)
+                    dupeIcon = Assets.GetSprite("unknown");
+
+                rerollTraitBtn.transform.Find("Image").GetComponent<KImage>().sprite = dupeIcon;
+                var lockImage = rerollTraitBtn.transform.Find("LockImage").GetComponent<KImage>();
+                lockImage.sprite = lockIcon;
+                lockImage.color = locked ? Color.red : Color.white;
+            }
+        }
+
+        public static string UnlockIcon = "OpenLock";
     }
 }

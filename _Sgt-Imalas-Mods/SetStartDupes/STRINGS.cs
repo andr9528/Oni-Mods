@@ -19,6 +19,11 @@ namespace SetStartDupes
         public static LocString MISSINGSKILLGROUPDESC = "This Attribute could not be found: {0}";
         public class UI
         {
+            public class STARTAGAIN
+            {
+                public static LocString SIDESCREEN_TEXT = "Reselect start duplicants";
+                public static LocString SIDESCREEN_TOOLTIP = "Restart Light";
+            }
 
             public class DUPEEDITING
             {
@@ -181,16 +186,6 @@ namespace SetStartDupes
                 {
                     public static LocString NAME = "Reroll printing pod";
                     public static LocString TOOLTIP = "Enable this option to add the reroll button to printing pod Duplicants and care packages.\nCare Packages allow selecting from all currently available package configurations.";
-                }
-                public class PRESETSOVERRIDEREACTIONS
-                {
-                    public static LocString NAME = "Presets override Reactions";
-                    public static LocString TOOLTIP = "If enabled, applying presets to duplicants also overrides their inherited stress reaction and overjoyed response.";
-                }
-                public class PRESETSOVERRIDENAME
-                {
-                    public static LocString NAME = "Presets override Name";
-                    public static LocString TOOLTIP = "If enabled, applying presets to duplicants also sets their name to that of the preset";
                 }
 
                 public class PRINTINGPODRECHARGETIME
@@ -391,7 +386,7 @@ namespace SetStartDupes
                             public class CLOSEBUTTON
                             {
                                 public static LocString TEXT = "Return";
-                                public static LocString TOOLTIP = "close preset window";
+                                public static LocString TOOLTIP = "Close preset window";
                             }
                             public class GENERATEFROMCURRENT
                             {
@@ -403,6 +398,19 @@ namespace SetStartDupes
                                 public static LocString TEXT = "Apply Preset";
                                 public static LocString TOOLTIP = "Apply the currenly displayed stats to the Duplicant this window was opened from.";
                                 public static LocString TOOLTIPCREW = "Load the Crew Preset thats currently displayed in the preview";
+                            }
+                        }
+                        public class CHECKBOXES
+                        {
+                            public class REACTIONOVERRIDE
+                            {
+                                public static LocString LABEL = "Preset overrides Reactions";
+                                public static LocString TOOLTIP = "If enabled, applying presets to duplicants also overrides their inherited stress reaction and overjoyed response.";
+                            }
+                            public class NAMEOVERRIDE
+                            {
+                                public static LocString LABEL = "Preset overrides Name";
+                                public static LocString TOOLTIP = "If enabled, applying presets to duplicants also sets their name to that of the preset";
                             }
                         }
                     }
@@ -417,6 +425,8 @@ namespace SetStartDupes
                 public static LocString REMOVEDUPE = "REMOVE SLOT";
                 public static LocString REMOVEDUPETOOLTIP = "Remove this duplicant slot, reducing your total starting duplicant count by 1.";
                 public static LocString GUARANTEETRAIT = "Guarantee this trait to be rolled on a reroll.\nWorks in combination with the interest selector.";
+                public static LocString LOCKPERSONALITY_TOOLTIP = "Lock the current personality for rolls.\nWhile locked, all duplicants rolled will automatically have the locked personality.";
+                public static LocString PRINTINGPOD_SELECT = "The current planet the active printing pod is on.\nClick to change the active printing pod";
             }
             public class DUPESETTINGSSCREEN
             {

@@ -25,7 +25,6 @@ namespace ClusterTraitGenerationManager.ClusterData
         [JsonIgnore] public Vector2I originalWorldDimensions;
         [JsonIgnore] public string ModName = string.Empty;
 
-
         public WorldPlacement placement;
 
         public SpaceMapPOIPlacement placementPOI;
@@ -136,41 +135,44 @@ namespace ClusterTraitGenerationManager.ClusterData
                 {
                     return new(CustomX, CustomY);
                 }
-                var dim = new Vector2I(0, 0);
+                var dim = originalWorldDimensions;
 
                 if (world != null)
                 {
-                    float sizePercentage = (float)SizePreset / 100f;
-                    float ratioModifier = 0;
-
-                    bool? ChooseHeight = null;
-
-                    int intRatio = (int)RatioPreset;
-                    if (intRatio != 100)
+                    if (SizePreset != WorldSizePresets.Normal || RatioPreset!=WorldRatioPresets.Normal)
                     {
-                        if (intRatio < 100)
+                        float sizePercentage = (float)SizePreset / 100f;
+                        float ratioModifier = 0;
+
+                        bool? ChooseHeight = null;
+
+                        if (RatioPreset!=WorldRatioPresets.Normal)
                         {
-                            ratioModifier = 1f - ((float)RatioPreset / 100f);
-                            ChooseHeight = false;
+                            int intRatio = (int)RatioPreset;
+                            if (intRatio < 100)
+                            {
+                                ratioModifier = 1f - ((float)RatioPreset / 100f);
+                                ChooseHeight = false;
+                            }
+                            else if (intRatio > 100)
+                            {
+                                ratioModifier = ((float)RatioPreset / 100f) - 1;
+                                ChooseHeight = true;
+                            }
                         }
-                        else if (intRatio > 100)
+                        float sizeIncreaseMultiplier = Mathf.Sqrt(sizePercentage);
+
+                        dim.X = Mathf.RoundToInt(originalWorldDimensions.X * sizeIncreaseMultiplier);
+                        dim.Y = Mathf.RoundToInt(originalWorldDimensions.Y * sizeIncreaseMultiplier);
+
+                        if (ChooseHeight == true)
                         {
-                            ratioModifier = ((float)RatioPreset / 100f) - 1;
-                            ChooseHeight = true;
+                            dim.Y = dim.Y + Mathf.RoundToInt(dim.Y * ratioModifier);
                         }
-                    }
-                    float sizeIncreaseMultiplier = Mathf.Sqrt(sizePercentage);
-
-                    dim.X = Mathf.RoundToInt(originalWorldDimensions.X * sizeIncreaseMultiplier);
-                    dim.Y = Mathf.RoundToInt(originalWorldDimensions.Y * sizeIncreaseMultiplier);
-
-                    if (ChooseHeight == true)
-                    {
-                        dim.Y = dim.Y + Mathf.RoundToInt(dim.Y * ratioModifier);
-                    }
-                    if (ChooseHeight == false)
-                    {
-                        dim.X = dim.X + Mathf.RoundToInt(dim.X * ratioModifier);
+                        if (ChooseHeight == false)
+                        {
+                            dim.X = dim.X + Mathf.RoundToInt(dim.X * ratioModifier);
+                        }
                     }
                 }
                 return dim;
@@ -180,7 +182,7 @@ namespace ClusterTraitGenerationManager.ClusterData
         //int CustomWorldSizeX = -1, CustomWorldSizeY = -1;
         WorldSizePresets SizePreset = WorldSizePresets.Normal;
         WorldRatioPresets RatioPreset = WorldRatioPresets.Normal;
-
+        [JsonIgnore] public bool DefaultDimensions => SizePreset == WorldSizePresets.Normal && RatioPreset == WorldRatioPresets.Normal && !UsingCustomDimensions;
         [JsonIgnore] public WorldSizePresets CurrentSizePreset => SizePreset;
         [JsonIgnore] public WorldRatioPresets CurrentRatioPreset => RatioPreset;
 
@@ -204,7 +206,6 @@ namespace ClusterTraitGenerationManager.ClusterData
         private bool UsingCustomDimensions = false;
         public void ApplyCustomDimension(int value, bool heightTrueWidthFalse)
         {
-
             var currentDims = CustomPlanetDimensions;
             UsingCustomDimensions = true;
             if (CustomX == -1)
@@ -215,7 +216,6 @@ namespace ClusterTraitGenerationManager.ClusterData
             {
                 CustomY = currentDims.Y;
             }
-
             if (world != null)
             {
                 if (heightTrueWidthFalse)
@@ -270,18 +270,19 @@ namespace ClusterTraitGenerationManager.ClusterData
         [JsonIgnore] public int maxRing => placement != null ? placement.allowedRings.max : placementPOI != null ? placementPOI.allowedRings.max : -1;
         [JsonIgnore] public int buffer => placement != null ? placement.buffer : -1;
 
-        [JsonIgnore] public bool SupportsGeyserOverride
+        [JsonIgnore]
+        public bool SupportsGeyserOverride
         {
             get
             {
-                if(_geyserOverrideCount == -1)
+                if (_geyserOverrideCount == -1)
                 {
-                    if(world != null)
+                    if (world != null)
                     {
                         _geyserOverrideCount = 0;
                         foreach (var poiRule in world.worldTemplateRules)
                         {
-                            if(poiRule.names!=null && poiRule.names.Count == 1 && poiRule.names.First()== "geysers/generic")
+                            if (poiRule.names != null && poiRule.names.Count == 1 && poiRule.names.First() == "geysers/generic")
                             {
                                 _geyserOverrideCount += poiRule.times;
                             }
@@ -611,12 +612,14 @@ namespace ClusterTraitGenerationManager.ClusterData
             {
                 return new List<WorldTrait>();
             }
-            List<string> ExclusiveWithTags
-                = new List<string>();
+
+            List<WorldTrait> AlwaysAvailableTraits = AllTraits.FindAll((WorldTrait trait) => trait.traitTags.Contains(ModAPI.CGM_TraitTags.OverrideWorldRules_AlwaysAllow));
+
+            List<string> ExclusiveWithTags = new List<string>();
 
             if (currentTraits.Count > 0 || (world != null && world.disableWorldTraits))
             {
-                AllTraits.RemoveAll((WorldTrait trait) => trait.filePath == ModAssets.CustomTraitID);
+                AllTraits.RemoveAll((WorldTrait trait) => trait.filePath == ModAssets.CGM_RandomTrait);
             }
 
 
@@ -626,7 +629,7 @@ namespace ClusterTraitGenerationManager.ClusterData
                 {
                     ExclusiveWithTags.AddRange(SettingsCache.worldTraits[trait].exclusiveWithTags);
                 }
-                if (trait == ModAssets.CustomTraitID)
+                if (trait == ModAssets.CGM_RandomTrait) //random trait is mutually exclusive with everything else
                     return new List<WorldTrait>();
             }
 
@@ -643,6 +646,7 @@ namespace ClusterTraitGenerationManager.ClusterData
                     || !trait.IsValid(world, logErrors: true));
 
             }
+            AllTraits = AllTraits.Union(AlwaysAvailableTraits).ToList();
             AllTraits.RemoveAll((WorldTrait trait) =>
                  !trait.IsValid(world, logErrors: true)
                 || trait.exclusiveWithTags.Any(x => ExclusiveWithTags.Any(y => y == x))

@@ -1,24 +1,8 @@
-﻿using Database;
-using HarmonyLib;
-using Klei.AI;
-using System;
+﻿using HarmonyLib;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.Windows.Speech;
 using UtilLibs;
-using UtilLibs.UI.FUI;
-using UtilLibs.UIcmp;
-using static Klei.AI.Attribute;
-using YamlDotNet.Core.Tokens;
-using static PedestalFilter.ModAssets;
-using static UnityEngine.Windows.Speech.PhraseRecognitionSystem;
-using static MathUtil;
-using FMOD;
 
 namespace PedestalFilter
 {
@@ -78,20 +62,23 @@ namespace PedestalFilter
                     SearchBar.text = string.Empty;
                 }
             }
-            public static void Prefix()
-            {
-               
-            }
             public static void Postfix(ReceptacleSideScreen __instance)
             {
-                if (__instance.GetType() != typeof(ReceptacleSideScreen))
+                if (__instance.GetType().IsSubclassOf(typeof(ReceptacleSideScreen)))
                     return;
 
 
                 if (SearchBar != null)
                 {
                     FilterArtifacts = Config.Instance.DefaultToArtifactsOnly;
-                    ArtifactFilter?.UpdateColor(true, FilterArtifacts, false);
+                    if (ArtifactFilter != null)
+                    {
+                        if (ArtifactFilter.bgImage != null|| ArtifactFilter.GetComponent<KImage>()!=null)
+                        {
+                            ArtifactFilter?.UpdateColor(true, FilterArtifacts, false);
+                        }
+                    }
+
                     ClearSearchBar();
                     return;
                 }
@@ -122,7 +109,13 @@ namespace PedestalFilter
                 };
                 ArtifactFilter.onPointerExit += () =>
                 {
-                    ArtifactFilter.UpdateColor(true, FilterArtifacts, false);
+                    if (ArtifactFilter != null)
+                    {
+                        if (ArtifactFilter.bgImage != null || ArtifactFilter.GetComponent<KImage>() != null)
+                        {
+                            ArtifactFilter?.UpdateColor(true, FilterArtifacts, false);
+                        }
+                    }
                 };
                 secondaryButton.gameObject.GetComponentInChildren<ToolTip>().SetSimpleTooltip(STRINGS.PEDESTALSEARCHBAR.FILTER_ARTIFACTS);
 
@@ -165,52 +158,15 @@ namespace PedestalFilter
         }
 
         [HarmonyPatch(typeof(ReceptacleSideScreen), nameof(ReceptacleSideScreen.UpdateAvailableAmounts))]
-        public static class FilterFromSearchBar
+        public static class ReceptacleSideScreen_UpdateAvailableAmounts
         {
             public static bool Prefix(ReceptacleSideScreen __instance)
             {
-                if (__instance.GetType() != typeof(ReceptacleSideScreen))
+                if (__instance.GetType().IsSubclassOf(typeof(ReceptacleSideScreen)))
                     return true;
 
-
-                return __instance.requestObjectList.GetComponent("VirtualScroll") !=null;
+                return __instance.requestObjectList.GetComponent("VirtualScroll") != null;
             }
-            
-            ///<summary>
-            /// consume existing calls that enable/disable the gameobject of individual entries to only do that once in the postfix
-            /// if fast track is enabled, this does not effect it at all
-            /// </summary>
-            /// <param name="gameObject"></param>
-            /// <param name="active"></param>
-            public static void ConsumeSetActive(GameObject gameObject, bool active)
-            {
-
-            }
-            //[HarmonyTranspiler]
-            //static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator il)
-            //{
-            //    var code = instructions.ToList();
-
-            //    var SetActive = AccessTools.Method(
-            //        typeof(FilterFromSearchBar),
-            //        nameof(FilterFromSearchBar.ConsumeSetActive));
-
-
-            //    var ConsumptionMethod = AccessTools.Method(
-            //        typeof(GameObject),
-            //        nameof(GameObject.SetActive));
-
-
-            //    for (int index = 0; index < code.Count; ++index)
-            //    {
-            //        var ci = code[index];
-            //        if (ci.Calls(SetActive))
-            //        {
-            //            code[index] = new CodeInstruction(OpCodes.Call, ConsumptionMethod);
-            //        }
-            //    }
-            //    return code;
-            //}
             
             [HarmonyPostfix]
             [HarmonyPriority(90)]

@@ -1,6 +1,7 @@
 ﻿using ClusterTraitGenerationManager.ClusterData;
 using Klei.CustomSettings;
 using Newtonsoft.Json;
+using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,6 +11,7 @@ using System.Text;
 using UnityEngine;
 using UtilLibs;
 using static ClusterTraitGenerationManager.ClusterData.CGSMClusterManager;
+using static ClusterTraitGenerationManager.STRINGS;
 using static CustomGameSettings;
 
 namespace ClusterTraitGenerationManager
@@ -515,6 +517,8 @@ namespace ClusterTraitGenerationManager
             if (CGSMClusterManager.CustomCluster == null)
                 return;
 
+            int missinCount = 0;
+
             SgtLogger.l("Applying Preset " + ConfigName);
 
             ApplyGameSettings();
@@ -528,12 +532,19 @@ namespace ClusterTraitGenerationManager
 
             if (StarterPlanet != null)
             {
-                var StarterPlanetItem = dict.ContainsKey(StarterPlanet.itemID) ? dict[StarterPlanet.itemID] : null;
+                string itemId = StarterPlanet.itemID;
+
+                var StarterPlanetItem = dict.ContainsKey(itemId) ? dict[itemId] : null;
                 if (StarterPlanetItem != null)
                 {
                     ApplyDataToStarmapItem(StarterPlanet, StarterPlanetItem);
+                    cluster.StarterPlanet = StarterPlanetItem;
                 }
-                cluster.StarterPlanet = StarterPlanetItem;
+                else
+                {
+                    missinCount++;
+                    cluster.StarterPlanet = null;
+                }
             }
             else
             {
@@ -542,12 +553,20 @@ namespace ClusterTraitGenerationManager
 
             if (WarpPlanet != null)
             {
-                var WarpPlanetItem = dict.ContainsKey(WarpPlanet.itemID) ? dict[WarpPlanet.itemID] : null;
+                string itemId = WarpPlanet.itemID;
+
+
+                var WarpPlanetItem = dict.ContainsKey(itemId) ? dict[itemId] : null;
                 if (WarpPlanetItem != null)
                 {
                     ApplyDataToStarmapItem(WarpPlanet, WarpPlanetItem);
+                    cluster.WarpPlanet = WarpPlanetItem;
                 }
-                cluster.WarpPlanet = WarpPlanetItem;
+                else
+                {
+                    missinCount++;
+                    cluster.WarpPlanet = null;
+                }
             }
             else
             {
@@ -557,13 +576,20 @@ namespace ClusterTraitGenerationManager
             cluster.OuterPlanets.Clear();
             foreach (var outerplanet in this.OuterPlanets)
             {
-                var outerItem = dict.ContainsKey(outerplanet.Value.itemID) ? (dict[outerplanet.Value.itemID]) : null;
+
+                string itemId = outerplanet.Value.itemID;
+
+                var outerItem = dict.ContainsKey(itemId) ? (dict[itemId]) : null;
                 if (outerItem != null)
                 {
                     ApplyDataToStarmapItem(outerplanet.Value, outerItem);
+                    cluster.OuterPlanets[outerplanet.Key] = outerItem;
                 }
-                else SgtLogger.l(outerplanet.Key + " had no item");
-                cluster.OuterPlanets[outerplanet.Key] = outerItem;
+                else
+                {
+                    SgtLogger.l(outerplanet.Key + " had no item");
+                    missinCount++;
+                }
             }
 
             cluster.POIs.Clear();
@@ -574,8 +600,7 @@ namespace ClusterTraitGenerationManager
                     SgtLogger.l(poi.Key + " had no item");
                     continue;
                 }
-
-                if (poi.Value.pois == null)
+                if (poi.Value.pois == null || poi.Value.pois.Count == 0)
                 {
                     SgtLogger.l("legacy poi " + poi.Key + " found");
                     cluster.AddLegacyPOIGroup(poi.Key, poi.Value.minRing, poi.Value.maxRing, poi.Value.numberToSpawn);
@@ -615,7 +640,10 @@ namespace ClusterTraitGenerationManager
                     cluster.SO_Starmap = null;
                 }
             }
-
+            if (missinCount > 0)
+            {
+                DialogUtil.CreateConfirmDialogFrontend(ERRORMESSAGES.MISSINGWORLDS_TITLE, string.Format(ERRORMESSAGES.MISSINGWORLDS_TEXT, missinCount));
+            }
         }
         void ApplyDataToStarmapItem(SerializableStarmapItem item, StarmapItem reciverToLookup)
         {
@@ -643,8 +671,12 @@ namespace ClusterTraitGenerationManager
             {
                 reciever.SetPlanetRatioToPreset(item.ratioPreset);
             }
-            reciever.CustomX = item.customX;
-            reciever.CustomY = item.customY;
+            if (item.customX > 0)
+                reciever.ApplyCustomDimension(item.customX, false);
+
+            if (item.customY > 0)
+                reciever.ApplyCustomDimension(item.customY, true);
+
             if (reciever.world != null)
             {
                 reciever.world.seasons = item.meteorSeasons;
@@ -704,8 +736,50 @@ namespace ClusterTraitGenerationManager
                 using (var sr = new StreamReader(filestream))
                 {
                     string jsonString = sr.ReadToEnd();
-                    CustomClusterSettingsPreset modlist = JsonConvert.DeserializeObject<CustomClusterSettingsPreset>(jsonString);
-                    return modlist;
+                    CustomClusterSettingsPreset preset = JsonConvert.DeserializeObject<CustomClusterSettingsPreset>(jsonString);
+                    preset.FixAsteroidIDs();
+                    return preset;
+                }
+            }
+        }
+
+        private void FixAsteroidIDs()
+        {
+            if (StarterPlanet != null)
+            {
+                if (ModAssets.FindSwapAsteroid(StarterPlanet.itemID, out var newId))
+                    StarterPlanet.itemID = newId;
+            }
+            if (WarpPlanet != null)
+            {
+                if (ModAssets.FindSwapAsteroid(WarpPlanet.itemID, out var newId))
+                    WarpPlanet.itemID = newId;
+            }
+
+            if (OuterPlanets != null)
+            {
+                List<string> Keys = OuterPlanets.Keys.ToList();
+                foreach (var asteroid in Keys)
+                {
+                    if (ModAssets.FindSwapAsteroid(asteroid, out var newId))
+                    {
+                        var ast = OuterPlanets[asteroid];
+                        ast.itemID = newId;
+
+                        OuterPlanets.Remove(asteroid);
+                        OuterPlanets.Add(newId, ast);
+                    }
+                }
+
+            }
+            if (SO_POI_Overrides != null)
+            {
+                foreach (var poiPos in SO_POI_Overrides)
+                {
+                    if (ModAssets.FindSwapAsteroid(poiPos.itemId, out var newId))
+                    {
+                        poiPos.itemId = newId;
+                    }
                 }
             }
         }

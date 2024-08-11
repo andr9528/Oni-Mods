@@ -52,7 +52,7 @@ namespace NeutroniumTrashCan
             storage.showDescriptor = true;
             storage.SetDefaultStoredItemModifiers(Storage.StandardInsulatedStorage);
             ConduitConsumer conduitConsumer = go.AddOrGet<ConduitConsumer>();
-            conduitConsumer.conduitType = ConduitType.Liquid;
+            conduitConsumer.conduitType = ConduitType.Gas;
             conduitConsumer.wrongElementResult = ConduitConsumer.WrongElementResult.Store;
             conduitConsumer.forceAlwaysSatisfied = true;
         }

@@ -853,6 +853,7 @@ namespace ClusterTraitGenerationManager.UI.Screens
             if (!show)
                 return;
 
+            RebuildVanillaStarmapUIIfPending();
         }
         static async Task DoWithDelay(System.Action task, int ms)
         {
@@ -1618,7 +1619,6 @@ namespace ClusterTraitGenerationManager.UI.Screens
 
             foreach (var rangeEntry in CustomCluster.POIs)
             {
-                SgtLogger.l(rangeEntry.Value.id, rangeEntry.Key);
                 AddSO_POIGroup(rangeEntry.Value);
             }
             AddRemoveStarmapButtons.gameObject.SetActive(false);
@@ -1673,20 +1673,29 @@ namespace ClusterTraitGenerationManager.UI.Screens
                 RebuildVanillaStarmap(reset);
         }
 
-        public void RebuildVanillaStarmap(bool reset)
-        {
-            if (DlcManager.IsExpansion1Active())
-                return;
 
+        bool pendingRebuild = false;
+        public void TryRebuildStarmapUI()
+        {
+            if (!IsCurrentlyActive)
+                pendingRebuild = true;
+            else
+                RebuildVanillaStarmapUI();
+        }
+        public void RebuildVanillaStarmapUIIfPending()
+        {
+            if(pendingRebuild)
+            {
+                pendingRebuild = false;
+                RebuildVanillaStarmapUI();
+            }
+        }
+        private void RebuildVanillaStarmapUI()
+        {
             bool currentlyActive = VanillaStarmapItemContent.activeSelf;
             VanillaStarmapItemContent.SetActive(true);
-
-
-            if (reset)
-                CustomCluster.ResetVanillaStarmap();
-
             var list = VanillaStarmapEntries.Values.ToList();
-            for (int i = VanillaStarmapEntries.Count - 1; i >= 0; i--)
+            for (int i = list.Count - 1; i >= 0; i--)
             {
                 Destroy(list[i].gameObject);
             }
@@ -1704,6 +1713,16 @@ namespace ClusterTraitGenerationManager.UI.Screens
             VanillaStarmapItemContent.SetActive(currentlyActive);
             if (SelectedCategory == StarmapItemCategory.VanillaStarmap)
                 CurrentlySelectedItemData = null;
+        }
+
+        public void RebuildVanillaStarmap(bool reset)
+        {
+            if (DlcManager.IsExpansion1Active())
+                return;
+
+            if (reset)
+                CustomCluster.ResetVanillaStarmap();
+            TryRebuildStarmapUI();
         }
         void RefreshMissingItemsButton()
         {
@@ -2362,7 +2381,6 @@ namespace ClusterTraitGenerationManager.UI.Screens
 
             categoryToggles.Clear();
 
-
             foreach (var Planet in PlanetoidDict)
             {
                 AddItemToGallery(Planet.Value);
@@ -2443,7 +2461,7 @@ namespace ClusterTraitGenerationManager.UI.Screens
             ///SeasonContainer
             foreach (var gameplaySeason in Db.Get().GameplaySeasons.resources)
             {
-                if (!(gameplaySeason is MeteorShowerSeason) || gameplaySeason.Id.Contains("Fullerene") || gameplaySeason.Id.Contains("TemporalTear") || gameplaySeason.dlcId != DlcManager.GetHighestActiveDlcId())
+                if (!(gameplaySeason is MeteorShowerSeason) || gameplaySeason.Id.Contains("Fullerene") || gameplaySeason.Id.Contains("TemporalTear") || !DlcManager.IsContentSubscribed(gameplaySeason.dlcId))
                     continue;
 
                 var meteorSeason = gameplaySeason as MeteorShowerSeason;
@@ -2533,7 +2551,7 @@ namespace ClusterTraitGenerationManager.UI.Screens
 
                 icon.sprite = ModAssets.GetTraitSprite(kvp.Value);
                 icon.color = Util.ColorFromHex(kvp.Value.colorHex);
-                if (kvp.Key == ModAssets.CustomTraitID)
+                if (kvp.Key == ModAssets.CGM_RandomTrait)
                 {
                     combined = UIUtils.RainbowColorText(name.ToString());
                     TraitHolder.transform.Find("AwailableRandomTraits").gameObject.SetActive(true);
@@ -2558,7 +2576,7 @@ namespace ClusterTraitGenerationManager.UI.Screens
                     RefreshTraitList();
                 };
 
-                if (kvp.Key == ModAssets.CustomTraitID)
+                if (kvp.Key == ModAssets.CGM_RandomTrait)
                 {
                     RandomTraitDeleteButton = RemoveButton;
                 }
@@ -2643,7 +2661,7 @@ namespace ClusterTraitGenerationManager.UI.Screens
             }
             if (CurrentStarmapItem.IsRandom)
             {
-                Traits[ModAssets.CustomTraitID].SetActive(true);
+                Traits[ModAssets.CGM_RandomTrait].SetActive(true);
             }
             else
             {
@@ -2779,7 +2797,7 @@ namespace ClusterTraitGenerationManager.UI.Screens
 
             // PermitPresentationInfo presentationInfo = permit.GetPermitPresentationInfo();
             GameObject availableGridButton = Util.KInstantiateUI(PlanetoidEntryPrefab, galleryGridContainer);
-            var itemLogic = availableGridButton.AddComponent<GalleryItem>();
+            var itemLogic = availableGridButton.AddOrGet<GalleryItem>();
             itemLogic.Initialize(planet);
 
 
@@ -2797,11 +2815,10 @@ namespace ClusterTraitGenerationManager.UI.Screens
                     TogglePlanetoid(CurrentStarmapItem);
                     RefreshView();
 
-                    if (DlcManager.IsExpansion1Active()) ResetSOStarmap(true);
+                    if (DlcManager.IsExpansion1Active()) 
+                        ResetSOStarmap(true);
                 }
             };
-
-
             planetoidGridButtons[planet] = itemLogic;
             //this.SetItemClickUISound(planet, component2);
             availableGridButton.SetActive(true);

@@ -308,7 +308,7 @@ namespace ClusterTraitGenerationManager
                 var starterHeader = Util.KInstantiateUI(InfoHeaderPrefab, InfoScreenContainer, true);
                 starterHeader.transform.Find("Label").GetComponent<LocText>().text = CATEGORYENUM.START + ":";
                 StarmapItemContainers.Add(starterHeader);
-
+                CurrentlySelected.StarterPlanet.category = StarmapItemCategory.Starter;
                 CreateUIItemForStarmapItem(CurrentlySelected.StarterPlanet);
             }
 
@@ -318,6 +318,7 @@ namespace ClusterTraitGenerationManager
                 warpHeader.transform.Find("Label").GetComponent<LocText>().text = CATEGORYENUM.WARP + ":";
                 StarmapItemContainers.Add(warpHeader);
 
+                CurrentlySelected.WarpPlanet.category = StarmapItemCategory.Warp;
                 CreateUIItemForStarmapItem(CurrentlySelected.WarpPlanet);
             }
 
@@ -329,6 +330,7 @@ namespace ClusterTraitGenerationManager
             }
             foreach(KeyValuePair<string, SerializableStarmapItem> planet in CurrentlySelected.OuterPlanets)
             {
+                planet.Value.category = StarmapItemCategory.Outer;
                 CreateUIItemForStarmapItem(planet.Value);
             }
 
@@ -340,6 +342,7 @@ namespace ClusterTraitGenerationManager
             }
             foreach (KeyValuePair<string, SerializableStarmapItem> planet in CurrentlySelected.POIs)
             {
+                planet.Value.category = StarmapItemCategory.POI;
                 CreateUIItemForStarmapItem(planet.Value);
             }
         }
@@ -394,17 +397,20 @@ namespace ClusterTraitGenerationManager
             if (item == null)
                 return null;
 
-           
 
             var planetObject = Util.KInstantiateUI(InfoRowPrefab, InfoScreenContainer, true);
+            StarmapItemContainers.Add(planetObject);
             planetObject.transform.Find("Label/TraitImage").TryGetComponent<Image>(out var image);
             var imageContainer = planetObject.transform.Find("IconContainer").gameObject;
 
             if (item.category != StarmapItemCategory.POI)
             {
+
                 if (!PlanetoidDict.ContainsKey(item.itemID))
                 {
-                    SgtLogger.warning(item.itemID + " not found planetoid dictionar!");
+                    image.sprite = Assets.GetSprite("unknown");
+                    UIUtils.TryChangeText(planetObject.transform, "Label", "MISSING: "+item.itemID);
+                    SgtLogger.warning(item.itemID + " not found planetoid dictionary!");
                     return null;
                 }
 
@@ -467,7 +473,6 @@ namespace ClusterTraitGenerationManager
                     }
                 }
             }
-            StarmapItemContainers.Add(planetObject);
             return planetObject;
         }
 

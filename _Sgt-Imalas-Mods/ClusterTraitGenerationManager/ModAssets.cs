@@ -35,6 +35,34 @@ namespace ClusterTraitGenerationManager
                 "MiniRadioactiveOcean"
             };
 
+
+        /// <summary>
+        /// Asteroid variants that have been removed with the hotfix on 26/07/2024
+        /// redirects to regular variants for presets
+        /// </summary>
+        static Dictionary<string, string> SmallClassicAsteroidsRedirects = new()
+        {
+            { "expansion1::worlds/SmallWarpOilySwamp", "expansion1::worlds/WarpOilySwamp"}, //warp
+            { "expansion1::worlds/SmallOilySwampStart", "expansion1::worlds/OilySwampStart"}, //start
+            { "expansion1::worlds/SmallOilySwampOuter", "expansion1::worlds/OilySwampOuter"}, //outer
+
+            { "expansion1::worlds/SmallRadioactiveLandingSite", "expansion1::worlds/IdealLandingSite"}, //outer
+            { "expansion1::worlds/SmallRadioactiveLandingSiteStart", "expansion1::worlds/IdealLandingSiteStart"}, //start
+            { "expansion1::worlds/SmallRadioactiveLandingSiteWarp", "expansion1::worlds/IdealLandingSiteWarp"}, //warp
+        };
+        public static bool FindSwapAsteroid(string item, out string replacement)
+        {
+            replacement = null;
+            if (SmallClassicAsteroidsRedirects.TryGetValue(item, out replacement))
+            {
+                SgtLogger.warning("found old removed asteroid " + item + "in preset, redirecting to " + replacement);
+
+                return true;
+            }
+            return false;
+        }
+
+
         //origin paths of dynamically generated asteroids and modded planets
         public static Dictionary<string, string> ModPlanetOriginPaths = new Dictionary<string, string>();
 
@@ -48,14 +76,15 @@ namespace ClusterTraitGenerationManager
             public bool HasArtifacts;
 
             public float RechargeMin, RechargeMax;
-            public float CapacityMin,CapacityMax;
+            public float CapacityMin, CapacityMax;
 
         }
 
         private static void InitPOIs()
         {
+            _nonUniquePOI_Ids = new();
             _so_POIs = new Dictionary<string, POI_Data>();
-            _nonUniquePOI_Ids = new List<string>();
+            _so_POI_IDs = new();
 
             foreach (var item in Assets.GetPrefabsWithComponent<HarvestablePOIClusterGridEntity>())
             {
@@ -65,6 +94,9 @@ namespace ClusterTraitGenerationManager
                     _so_POIs.Add(data.Id, data);
                     _nonUniquePOI_Ids.Add(data.Id);
                 }
+                if (data != null && !_so_POI_IDs.Contains(data.Id))
+                    _so_POI_IDs.Add(data.Id);
+
             }
             foreach (var item in Assets.GetPrefabsWithComponent<ArtifactPOIClusterGridEntity>())
             {
@@ -72,9 +104,11 @@ namespace ClusterTraitGenerationManager
                 if (data != null && !_so_POIs.ContainsKey(data.Id))
                 {
                     _so_POIs.Add(data.Id, data);
-                    if(data.Id!=TeapotId)
+                    if (data.Id != TeapotId)
                         _nonUniquePOI_Ids.Add(data.Id);
                 }
+                if (data != null && !_so_POI_IDs.Contains(data.Id))
+                    _so_POI_IDs.Add(data.Id);
             }
             foreach (var item in Assets.GetPrefabsWithComponent<TemporalTear>())
             {
@@ -83,6 +117,8 @@ namespace ClusterTraitGenerationManager
                 {
                     _so_POIs.Add(data.Id, data);
                 }
+                if (data != null && !_so_POI_IDs.Contains(data.Id))
+                    _so_POI_IDs.Add(data.Id);
             }
             var randomPoiData = new POI_Data();
             RandomPOIId = RandomKey + StarmapItemCategory.POI.ToString();
@@ -98,7 +134,23 @@ namespace ClusterTraitGenerationManager
 
         private static Dictionary<string, POI_Data> _so_POIs;
         private static List<string> _nonUniquePOI_Ids;
-        public static List<string> NonUniquePOI_Ids
+        private static HashSet<string> _so_POI_IDs;
+
+        public static bool IsSOPOI(string id) => SO_POI_IDs.Contains(id);
+
+        public static HashSet<string> SO_POI_IDs
+        {
+            get
+            {
+                if (_so_POI_IDs == null)
+                {
+                    InitPOIs();
+                }
+                return _so_POI_IDs;
+            }
+        }
+
+public static List<string> NonUniquePOI_Ids
         {
             get
             {
@@ -114,7 +166,7 @@ namespace ClusterTraitGenerationManager
         {
             get
             {
-                if(_so_POIs == null)
+                if (_so_POIs == null)
                 {
                     InitPOIs();
                 }
@@ -198,11 +250,11 @@ namespace ClusterTraitGenerationManager
         public static Sprite GetTraitSprite(WorldTrait trait)
         {
             Sprite TraitSprite = null;
-            if(trait.icon != null && trait.icon.Length > 0)
+            if (trait.icon != null && trait.icon.Length > 0)
             {
-                TraitSprite = Assets.GetSprite(trait.icon); 
+                TraitSprite = Assets.GetSprite(trait.icon);
             }
-            if(TraitSprite == null)
+            if (TraitSprite == null)
             {
                 string associatedIcon = trait.filePath.Substring(trait.filePath.LastIndexOf("/") + 1);
 
@@ -252,15 +304,15 @@ namespace ClusterTraitGenerationManager
             public static string ItemDescriptor(StarmapItemCategory itemCategory, bool plural = false)
             {
 
-                if(itemCategory == StarmapItemCategory.StoryTraits)
-                    return plural ?  STRINGS.UI.STARMAPITEMDESCRIPTOR.STORYTRAITPLURAL : STRINGS.UI.STARMAPITEMDESCRIPTOR.STORYTRAIT;
-                
+                if (itemCategory == StarmapItemCategory.StoryTraits)
+                    return plural ? STRINGS.UI.STARMAPITEMDESCRIPTOR.STORYTRAITPLURAL : STRINGS.UI.STARMAPITEMDESCRIPTOR.STORYTRAIT;
+
                 if (itemCategory == StarmapItemCategory.POI)
                     return plural ? STRINGS.UI.STARMAPITEMDESCRIPTOR.POI_GROUP_PLURAL : STRINGS.UI.STARMAPITEMDESCRIPTOR.POI_GROUP;
 
-                if (itemCategory == StarmapItemCategory.VanillaStarmap|| itemCategory == StarmapItemCategory.SpacedOutStarmap)
+                if (itemCategory == StarmapItemCategory.VanillaStarmap || itemCategory == StarmapItemCategory.SpacedOutStarmap)
                     return plural ? STRINGS.UI.STARMAPITEMDESCRIPTOR.POIPLURAL : STRINGS.UI.STARMAPITEMDESCRIPTOR.POI;
-                
+
                 return plural ? STRINGS.UI.STARMAPITEMDESCRIPTOR.ASTEROIDPLURAL : STRINGS.UI.STARMAPITEMDESCRIPTOR.ASTEROID;
             }
 
@@ -291,10 +343,11 @@ namespace ClusterTraitGenerationManager
             RandomizedTraitsTrait.name = "STRINGS.WORLD_TRAITS.CGM_RANDOMTRAIT.NAME";
             RandomizedTraitsTrait.description = "STRINGS.WORLD_TRAITS.CGM_RANDOMTRAIT.DESCRIPTION";
             RandomizedTraitsTrait.colorHex = "FFFFFF";
-            RandomizedTraitsTrait.filePath = CustomTraitID;
+            RandomizedTraitsTrait.filePath = CGM_RandomTrait;
         }
-        public static readonly string CustomTraitID = "traits/CGMRandomTraits";
+        public static readonly string CGM_RandomTrait = "traits/CGMRandomTraits";
         public static WorldTrait RandomizedTraitsTrait;
+
 
         public static Dictionary<ProcGen.World, List<string>> ChangedMeteorSeasons = new Dictionary<ProcGen.World, List<string>>();
 
@@ -304,7 +357,7 @@ namespace ClusterTraitGenerationManager
             {
                 Dictionary<string, WorldTrait> traits = new Dictionary<string, WorldTrait>
                 {
-                    { ModAssets.CustomTraitID, ModAssets.RandomizedTraitsTrait }
+                    { ModAssets.CGM_RandomTrait, ModAssets.RandomizedTraitsTrait }
                 };
                 traits.AddRange(SettingsCache.worldTraits);
                 return traits;
@@ -317,7 +370,7 @@ namespace ClusterTraitGenerationManager
             {
                 List<KeyValuePair<string, WorldTrait>> traits = new List<KeyValuePair<string, WorldTrait>>
                 {
-                    new KeyValuePair<string, WorldTrait>(ModAssets.CustomTraitID, ModAssets.RandomizedTraitsTrait)
+                    new KeyValuePair<string, WorldTrait>(ModAssets.CGM_RandomTrait, ModAssets.RandomizedTraitsTrait)
                 };
                 traits.AddRange(SettingsCache.worldTraits.ToList());
                 return traits;

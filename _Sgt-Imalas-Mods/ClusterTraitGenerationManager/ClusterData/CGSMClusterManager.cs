@@ -4,17 +4,25 @@ using ProcGen;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 using UtilLibs;
 using static ClusterTraitGenerationManager.STRINGS.UI;
+using static ProcGen.ClusterLayout;
 using static ProcGen.WorldPlacement;
 
 namespace ClusterTraitGenerationManager.ClusterData
 {
     public class CGSMClusterManager
     {
+
+        public const string CustomClusterIDCoordinate = "CGM";
+        public const string CustomClusterID = "expansion1::clusters/CGMCluster";
+        public const string CustomClusterClusterTag = "CGM_CustomCluster";
+
+
         public const float MaxAmountPOI = 5f;
         public const float MaxAmountRandomPOI = 32f; //TODO: dynamic scale with map size
         public const float MaxAmountRandomPlanet = 6f;
@@ -187,9 +195,6 @@ namespace ClusterTraitGenerationManager.ClusterData
         }
 
 
-
-        public const string CustomClusterIDCoordinate = "CGM";
-        public const string CustomClusterID = "expansion1::clusters/CGMCluster";
         public static ClusterLayout GeneratedLayout => GenerateClusterLayoutFromCustomData(false);
         public static CustomClusterData CustomCluster;
 
@@ -261,15 +266,40 @@ namespace ClusterTraitGenerationManager.ClusterData
 
         ///Random Asteroids stay random in preview
 
+        public static ClusterLayout GenerateDummyCluster(bool spacedOut, bool ceres)
+        {
+            ClusterLayout clusterLayout = new ClusterLayout();
+            clusterLayout.filePath = CustomClusterID;
+            clusterLayout.name = "STRINGS.CLUSTER_NAMES.CGM.NAME";
+            clusterLayout.description = "STRINGS.CLUSTER_NAMES.CGM.DESCRIPTION";
+            clusterLayout.worldPlacements = new List<WorldPlacement>();
+            clusterLayout.coordinatePrefix = CustomClusterIDCoordinate;
+            clusterLayout.clusterTags.Add(CustomClusterClusterTag);
+            if (ceres)
+            {
+                clusterLayout.clusterTags.Add("CeresCluster");
+                clusterLayout.clusterTags.Add("GeothermalImperative");
+                clusterLayout.clusterAudio = new ClusterAudioSettings()
+                {
+                    musicWelcome = "Music_WattsonMessage_DLC2",
+                    musicFirst = "Ice_Planet",
+                    stingerDay = "Stinger_Day_DLC2",
+                    stingerNight = "Stinger_Loop_Night_DLC2"
+                };
+            }
+            return clusterLayout;
+        }
+
         public static ClusterLayout GenerateClusterLayoutFromCustomData(bool log)
         {
+            log = true;
             if (log)
                 SgtLogger.l("Started generating custom cluster layout");
             var layout = new ClusterLayout();
             CurrentClassicOuterPlanets = 0;
 
 
-            string setting = selectScreen.newGameSettings.GetSetting(CustomGameSettingConfigs.WorldgenSeed);
+            string setting = selectScreen.newGameSettingsPanel.GetSetting(CustomGameSettingConfigs.WorldgenSeed);
             int seed = int.Parse(setting);
             if (log)
                 SgtLogger.l(setting, "CurrentSeed");
@@ -284,10 +314,13 @@ namespace ClusterTraitGenerationManager.ClusterData
             layout.worldPlacements = new List<WorldPlacement>();
             layout.coordinatePrefix = CustomClusterIDCoordinate;
 
+            layout.clusterTags = new();
+
+
             if (DlcManager.IsExpansion1Active())
-                layout.requiredDlcId = DlcManager.EXPANSION1_ID;
+                layout.requiredDlcIds = new string[] { DlcManager.EXPANSION1_ID };
             else
-                layout.forbiddenDlcId = DlcManager.EXPANSION1_ID;
+                layout.forbiddenDlcIds = new string[] { DlcManager.EXPANSION1_ID };
 
             float multiplier = 1f;
             if (CustomCluster.Rings > CustomCluster.defaultRings)
@@ -308,6 +341,7 @@ namespace ClusterTraitGenerationManager.ClusterData
                 ///Disabling Story Traits if MiniBase worlds are active
                 if (CustomCluster.StarterPlanet.DisablesStoryTraits)
                     layout.disableStoryTraits = true;
+
 
 
                 if (CustomCluster.StarterPlanet.id.Contains(RandomKey))
@@ -336,7 +370,6 @@ namespace ClusterTraitGenerationManager.ClusterData
             }
             else
                 SgtLogger.warning("No start planet selected");
-
 
             if (CustomCluster.WarpPlanet != null)
             {
@@ -514,11 +547,28 @@ namespace ClusterTraitGenerationManager.ClusterData
             if (log)
                 SgtLogger.l("Ordering Asteroids");
 
+            List<StarmapItem> allPlanets = CustomCluster.GetAllPlanets();
             if (log)
             {
-                foreach (var item in CustomCluster.GetAllPlanets())
+                foreach (var item in allPlanets)
                 {
                     SgtLogger.l(item.PredefinedPlacementOrder.ToString(), item.id);
+                }
+            }
+            foreach (var item in allPlanets)
+            {
+                var world = item.world;
+                if (world != null && world.worldTags.Contains("Ceres"))
+                {
+                    layout.clusterTags.Add("CeresCluster");
+                    layout.clusterTags.Add("GeothermalImperative");
+                    layout.clusterAudio = new ClusterAudioSettings()
+                    {
+                        musicWelcome = "Music_WattsonMessage_DLC2",
+                        musicFirst =  "Ice_Planet",
+                        stingerDay = "Stinger_Day_DLC2",
+                        stingerNight = "Stinger_Loop_Night_DLC2"
+                    };
                 }
             }
 
@@ -564,6 +614,7 @@ namespace ClusterTraitGenerationManager.ClusterData
                 SgtLogger.l("Finished generating custom cluster");
             else
                 SgtLogger.l("custom cluster data regenerated");
+
 
             lastWorldGenFailed = false;
             return layout;
@@ -640,9 +691,9 @@ namespace ClusterTraitGenerationManager.ClusterData
                 return;
             ClusterLayout Reference = SettingsCache.clusterLayouts.GetClusterData(clusterID);
 
-            if (Reference == null || selectScreen == null || selectScreen.newGameSettings == null)
+            if (Reference == null || selectScreen == null || selectScreen.newGameSettingsPanel == null)
                 return;
-            string setting = selectScreen.newGameSettings.GetSetting(CustomGameSettingConfigs.WorldgenSeed);
+            string setting = selectScreen.newGameSettingsPanel.GetSetting(CustomGameSettingConfigs.WorldgenSeed);
 
             if (setting == null || setting.Length == 0)
                 return;
@@ -784,7 +835,7 @@ namespace ClusterTraitGenerationManager.ClusterData
                     }
                 }
             }
-            else
+            else if (DlcManager.IsExpansion1Active())
                 SgtLogger.l("poi placements were null");
 
             CustomCluster.SO_Starmap = null;
@@ -982,24 +1033,26 @@ namespace ClusterTraitGenerationManager.ClusterData
 
                 if (DlcManager.IsExpansion1Active())
                 {
-                    if (ClusterLayout.Key.Contains("clusters/SandstoneDefault") || ClusterLayout.Value.forbiddenDlcId == DlcManager.EXPANSION1_ID)
+                    if (ClusterLayout.Key.Contains("clusters/SandstoneDefault") || ClusterLayout.Value.forbiddenDlcIds != null && ClusterLayout.Value.forbiddenDlcIds.Contains(DlcManager.EXPANSION1_ID))
                     {
                         continue;
                     }
                 }
+                bool disablesStoryTraits = ClusterLayout.Value.disableStoryTraits;
+                var tags = ClusterLayout.Value.clusterTags;
 
-                if (ClusterLayout.Value.disableStoryTraits)
+                foreach (var planet in ClusterLayout.Value.worldPlacements)
                 {
-                    foreach (var planet in ClusterLayout.Value.worldPlacements)
+                    if (PlanetsAndPOIs.TryGetValue(planet.world, out StarmapItem starmapItem))
                     {
-                        if (PlanetsAndPOIs.ContainsKey(planet.world))
+                        if (disablesStoryTraits)
                         {
                             SgtLogger.l(planet.world + " will disable story traits");
-                            PlanetsAndPOIs[planet.world].DisablesStoryTraits = true;
+                            starmapItem.DisablesStoryTraits = true;
                         }
-                        else
-                            SgtLogger.warning("Tried to add disabling story traits to a planet that does not exist: " + planet.world);
                     }
+                    else
+                        SgtLogger.warning("Tried to add disabling story traits to a planet that does not exist: " + planet.world);
                 }
 
 
@@ -1024,16 +1077,17 @@ namespace ClusterTraitGenerationManager.ClusterData
         {
             List<StarmapItem> items = PlanetoidDict.Values.ToList().FindAll(item => item.category == starmapItemCategory);
 
-            SgtLogger.l(seed + "", "Getting Random item, Seed");
+            SgtLogger.l(seed + ", count: "+items.Count, "Getting Random item, Seed");
 
             if (seed != -1)
                 items = items.Shuffle(new System.Random(seed)).ToList();
             else
                 items.Shuffle();
-
             bool isClassic = false;
             StarmapItem item = null;
             int i;
+            bool isOuter = starmapItemCategory == StarmapItemCategory.Outer;
+
             for (i = 0; i < items.Count; ++i)
             {
                 isClassic = false;
@@ -1041,34 +1095,46 @@ namespace ClusterTraitGenerationManager.ClusterData
 
                 isClassic = PlanetIsClassic(item);
 
+
                 if (isClassic)
                 {
                     if (CurrentClassicOuterPlanets >= MaxClassicOuterPlanets)
                     {
                         continue;
-                        item.SetPlanetSizeToPreset(WorldSizePresets.Smaller); ///Reduce size to terrania level size for classic size planet
-                        SgtLogger.l("Classic size limit reached, generating " + item.id + " at smaller size");
+                        //item.SetPlanetSizeToPreset(WorldSizePresets.Smaller); ///Reduce size to terrania level size for classic size planet
+                        //SgtLogger.l("Classic size limit reached, generating " + item.id + " at smaller size");
                     }
                 }
 
-                if (!(item.id.Contains("TemporalTear")
-                    || item.id == null
-                    || item.id == string.Empty
+                SgtLogger.l("CCCCC");
+
+                Debug.Log(CustomCluster.OuterPlanets);
+                SgtLogger.l("DDDD");
+                Debug.Log(RandomOuterPlanets);
+
+                Debug.Log(item);
+                Debug.Log(item.id);
+
+                if (item.id == null || item.id == string.Empty || item.id.Contains("TemporalTear"))
+                    continue;
+
+                if (!(item.id == null                    
                     || CustomCluster.OuterPlanets.ContainsKey(item.id)
-                    || RandomOuterPlanets.Contains(item.id)
+                    || (isOuter && RandomOuterPlanets.Contains(item.id))
                     || item.id.Contains(RandomKey))
                     )
                 {
                     break;
                 }
 
-                if (i == items.Count - 1 && starmapItemCategory == StarmapItemCategory.Outer)
+                if (i == items.Count - 1 && isOuter)
                 {
                     item = null;
                 }
             }
-
-            if (item != null && starmapItemCategory == StarmapItemCategory.Outer)
+            Debug.Log("out of loop");
+            Debug.Log(item);
+            if (item != null && isOuter)
             {
                 RandomOuterPlanets.Add(item.id);
                 if (isClassic)
@@ -1160,7 +1226,6 @@ namespace ClusterTraitGenerationManager.ClusterData
                 if (PlanetsAndPOIs == null)
                 {
                     PlanetsAndPOIs = new Dictionary<string, StarmapItem>();
-
                     foreach (StarmapItemCategory category in AvailableStarmapItemCategories)
                     {
                         if (category < 0)
@@ -1177,19 +1242,6 @@ namespace ClusterTraitGenerationManager.ClusterData
 
                         randomItem.SetSpawnNumber(1);
 
-                        //if (category == StarmapItemCategory.POI)
-                        //{
-                        //    var placement = new SpaceMapPOIPlacement();
-                        //    placement.allowedRings = new MinMaxI(0, CustomCluster.Rings);
-                        //    placement.canSpawnDuplicates = true;
-                        //    placement.numToSpawn = 1;
-                        //    placement.avoidClumping = false;
-                        //    randomItem = randomItem.MakeItemPOI(key, placement, MaxAmountRandomPOI, SPACEDESTINATIONS.CGM_RANDOM_POI.NAME, SPACEDESTINATIONS.CGM_RANDOM_POI.DESCRIPTION);
-                        //    PlanetsAndPOIs[key] = randomItem;
-                        //    RandomPOIStarmapItem = randomItem;
-                        //}
-                        //else
-                        //{
                         var placement = new WorldPlacement();
                         MinMaxI startCoords = new MinMaxI(0, CustomCluster.Rings);
 
@@ -1218,22 +1270,16 @@ namespace ClusterTraitGenerationManager.ClusterData
                         //SgtLogger.l(World.Key + "; " + World.Value.ToString());
                         ProcGen.World world = WorldFromCache.Value;
 
-                        //SgtLogger.l(world.skip.ToString(), "skip?");
-                        if ((int)world.skip >= 99
-                            //&& !DebugHandler.enabled
-                            )
+                        //SgtLogger.l(world.skip.ToString(), "skip?1 "+WorldFromCache.Key);
+                        if ((int)world.skip >= 99)
                             continue;
 
-                        ///Hardcoded checks due to other mods not having the correct folder structure
+                        //if (!WorldAllowedByDlcSelection(WorldFromCache.Key))
+                        //    continue;
+
+
                         string KeyUpper = WorldFromCache.Key.ToUpperInvariant();
-                        bool SkipWorld =
-                               KeyUpper.Contains("EMPTERA") && DlcManager.IsExpansion1Active() ? !KeyUpper.Contains("DLC") : KeyUpper.Contains("DLC")
-                            || KeyUpper.Contains("ISLANDS") && DlcManager.IsExpansion1Active() ? !KeyUpper.Contains("DLC") : KeyUpper.Contains("DLC")
-                            || KeyUpper.Contains("FULERIA") && DlcManager.IsExpansion1Active() ? !KeyUpper.Contains("DLC") : KeyUpper.Contains("DLC")
-                            || DlcManager.IsExpansion1Active() && KeyUpper.Contains("WORLDS/SANDSTONEDEFAULT");
-
-
-
+                        bool SkipWorld = SkipWorldForDlcReasons(WorldFromCache.Key, WorldFromCache.Value);
 
 
                         if (!SkipWorld)
@@ -1250,12 +1296,14 @@ namespace ClusterTraitGenerationManager.ClusterData
 
                             if (PlanetIsMiniBase(PlanetsAndPOIs[WorldFromCache.Key]))
                             {
+                                SgtLogger.l("making " + KeyUpper);
                                 SgtLogger.l(WorldFromCache.Key + " will disable story traits due to Baby size");
                                 PlanetsAndPOIs[WorldFromCache.Key].DisablesStoryTraits = true;
                             }
                             SgtLogger.l("isClassic: " + PlanetIsClassic(PlanetsAndPOIs[WorldFromCache.Key]), WorldFromCache.Key);
                         }
-
+                        else
+                            SgtLogger.l("skipping worlditemCreation: " + KeyUpper);
                     }
 
                     PopulatePredefinedClusterPlacements();
@@ -1333,6 +1381,107 @@ namespace ClusterTraitGenerationManager.ClusterData
             {
                 if (!DlcManager.IsExpansion1Active())
                     CustomCluster.ResetVanillaStarmap();
+            }
+        }
+
+        static HashSet<string> DevWorlds = new HashSet<string>()
+        {
+            //SO:
+            "Moon_Barren",
+            "SulfurMoonlet",
+            "SpaceshipInterior",
+            "TinyEmpty",
+            "TinyIce",
+            "TinyMagma",
+            "TinyStart",
+            "TwinMoonlet",
+            "OilyMoonlet",
+            //basegame:
+            "TinySurface",
+            "BigEmpty"
+
+        };
+
+        internal static bool SkipModdedWorld(string world, KMod.Mod mod)
+        {
+            if (mod == null)
+                return false;
+
+            string rewrittenPath = world;// SettingsCache.RewriteWorldgenPathYaml(world);
+
+            string staticModID = mod.staticID;
+            //RollerSnakes Check
+            if (staticModID == "test447.RollerSnake")
+            {
+                bool isBaseGameWorld = rewrittenPath == "worlds/Tetrament";
+
+                bool exclude = DlcManager.IsExpansion1Active() ? isBaseGameWorld : !isBaseGameWorld;
+                return exclude;
+            }
+            //Empty Worlds, Fuleria, ILoveSlicksters Check
+            if (staticModID == "EmptyWorlds" || staticModID == "AllBiomesWorld" || staticModID == "ILoveSlicksters")
+            {
+                SgtLogger.l("found "+ staticModID + " world: " + rewrittenPath);
+                bool isBaseGameWorld = !rewrittenPath.Contains("DLC");
+
+                bool exclude = DlcManager.IsExpansion1Active() ? isBaseGameWorld : !isBaseGameWorld;
+                return exclude;
+            }
+            return false;
+        }
+
+        internal static bool SkipWorldForDlcReasons(string world, ProcGen.World worldItem)
+        {
+            if ((int)worldItem.skip >= 99 || worldItem.moduleInterior)
+                return true;
+            string fileName = System.IO.Path.GetFileNameWithoutExtension(world);
+            //hardcoded list due to skip being broken on current dev build:
+            if (DevWorlds.Contains(fileName))
+            {
+                SgtLogger.l("skipping dev rewrittenPath manually: " + world);
+                return true;
+            }
+
+            string sourcePath = SettingsCache.RewriteWorldgenPathYaml(world);
+            if (ModAssets.ModPlanetOriginPaths.TryGetValue(world, out var moddedPath))
+            {
+                world = moddedPath;
+                sourcePath = SettingsCache.RewriteWorldgenPathYaml(moddedPath);
+            }
+
+            if (ModAssets.IsModdedAsteroid(sourcePath, out var mod) || worldItem.isModded)
+            {
+                SgtLogger.l(world + " is modded");
+                return SkipModdedWorld(world, mod);
+            }
+
+            SettingsCache.GetDlcIdAndPath(world, out var dlcId, out var path);
+            //basegame
+            bool skip = false;
+            if (dlcId == "")
+            {
+                SgtLogger.l(world + " is basegame content", "contentChecker");
+                skip = DlcManager.IsExpansion1Active();
+            }
+            else if (dlcId == DlcManager.EXPANSION1_ID)
+            {
+                SgtLogger.l(world + " is SO content", "contentChecker");
+                skip = !DlcManager.IsExpansion1Active();
+            }
+            else if (dlcId == DlcManager.DLC2_ID)
+            {
+                SgtLogger.l(world + " is FP content", "contentChecker");
+                skip = (DlcManager.IsExpansion1Active() ? world.ToUpperInvariant().Contains("BASEGAME") : !world.ToUpperInvariant().Contains("BASEGAME"));
+            }
+            SgtLogger.l("skipping asteroid " + world + " for dlc reasons? " + skip);
+            return skip;
+        }
+
+        public static void RemoveFromCache()
+        {
+            if (SettingsCache.clusterLayouts.clusterCache.ContainsKey(CustomClusterID))
+            {
+                SettingsCache.clusterLayouts.clusterCache.Remove(CustomClusterID);
             }
         }
     }
