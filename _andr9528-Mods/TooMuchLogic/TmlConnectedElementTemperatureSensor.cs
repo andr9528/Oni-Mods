@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using KSerialization;
 using Microsoft.Build.Utilities;
 using STRINGS;
+using TooManySensors.Services;
 using UnityEngine;
 using UtilLibs;
 using static STRINGS.MISC.STATUSITEMS;
@@ -13,15 +14,17 @@ using CODEX = STRINGS.CODEX;
 
 namespace TooManySensors
 {
-    public class TmlConnectedElementTemperatureSensor : Switch, ISaveLoadable, IThresholdSwitch, ISim4000ms
+    public class TmlConnectedElementTemperatureSensor : Switch, ISaveLoadable, IThresholdSwitch, ISim4000ms,
+        ISingleSliderControl
     {
         private static Dictionary<int, TmlConnectedElementTemperatureSensor> knownSensors = new();
-        private static Dictionary<string, List<int>> rooms = new();
+        private static Dictionary<string, HashSet<int>> rooms = new();
 
         [CanBeNull] private string currentRoomId;
         private bool buildingRoom = false;
         private HandleVector<int>.Handle structureTemperature;
         [Serialize] [SerializeField] public float thresholdTemperature = 280f;
+        [Serialize] [SerializeField] public int radius = 0;
         [Serialize] [SerializeField] public bool activateOnWarmerThan;
         public float minTemp;
         public float maxTemp = 373.15f;
@@ -165,8 +168,17 @@ namespace TooManySensors
             base.OnCleanUp();
             int myCell = Grid.PosToCell(this);
             knownSensors.Remove(myCell);
-            if (!string.IsNullOrWhiteSpace(currentRoomId))
-                rooms[currentRoomId].Remove(myCell);
+            RemoveFromRoom();
+        }
+
+        private void RemoveFromRoom()
+        {
+            int myCell = Grid.PosToCell(this);
+            if (string.IsNullOrWhiteSpace(currentRoomId))
+                return;
+
+            rooms[currentRoomId].Remove(myCell);
+            currentRoomId = "";
         }
 
         public override void OnSpawn()
@@ -228,67 +240,35 @@ namespace TooManySensors
 
             Element startElement = Grid.Element[myCell];
 
-            GrabCellsIterative(myCell, startElement);
+            var grapper = new CellGrapperService();
+            roomCells = radius == 0
+                ? grapper.GrabCellsIterative(myCell, startElement, EarlyBreak)
+                : grapper.GrabCellsRadius(myCell, startElement, radius);
 
-            if (string.IsNullOrWhiteSpace(currentRoomId))
+            if (radius == 0 && string.IsNullOrWhiteSpace(currentRoomId))
             {
                 currentRoomId = Guid.NewGuid().ToString();
-                rooms.Add(currentRoomId, new List<int>());
+                rooms.Add(currentRoomId, new HashSet<int>());
                 rooms[currentRoomId].Add(myCell);
             }
 
             buildingRoom = false;
+
+            UpdateAverageTemp();
         }
 
-        private bool IsCellGood(int source, Element sourceElement)
+        private bool EarlyBreak(int source, int cell)
         {
-            if (!Grid.IsValidCell(source))
-                return false;
-            if (Grid.IsCellOpenToSpace(source))
-                return false;
-            if (Grid.Mass[source] <= 0.0)
-                return false;
-            if (!(Grid.IsGas(source) || Grid.IsLiquid(source)))
-                return false;
-            if (Grid.Element[source] != sourceElement)
-                return false;
-            return true;
-        }
-
-        private void GrabCellsIterative(int source, Element sourceElement)
-        {
-            //CavityInfo cavityForCell = Game.Instance.roomProber.GetCavityForCell(source);
-            //SgtLogger.log($"Cell {source} is inside Cavity with {cavityForCell.numCells} total cells");
-
-            HashSet<int> visited = new();
-            Queue<int> queue = new();
-            queue.Enqueue(source);
-
-            while (queue.Any())
-            {
-                int cell = queue.Dequeue();
-                if (knownSensors.ContainsKey(cell) && UpdateTempFromOtherSensor(source, cell))
-                    break;
-
-                if (visited.Contains(cell))
-                    continue;
-                visited.Add(cell);
-
-                if (!IsCellGood(cell, sourceElement))
-                    continue;
-
-                roomCells.Add(cell);
-                queue.Enqueue(Grid.CellAbove(cell));
-                queue.Enqueue(Grid.CellBelow(cell));
-                queue.Enqueue(Grid.CellLeft(cell));
-                queue.Enqueue(Grid.CellRight(cell));
-            }
+            return radius == 0 && knownSensors.ContainsKey(cell) && UpdateTempFromOtherSensor(source, cell);
         }
 
         private bool UpdateTempFromOtherSensor(int source, int cell)
         {
+            if (source == cell)
+                return false;
+
             var existingRoom = rooms.FirstOrDefault(x => x.Value.Contains(cell));
-            if (existingRoom.Equals(default(KeyValuePair<string, List<int>>)))
+            if (existingRoom.Equals(default(KeyValuePair<string, HashSet<int>>)))
                 return false;
 
             existingRoom.Value.Add(source);
@@ -302,7 +282,12 @@ namespace TooManySensors
             if (string.IsNullOrEmpty(currentRoomId))
                 return false;
 
-            TmlConnectedElementTemperatureSensor sensor = knownSensors[rooms[currentRoomId].First()];
+            int otherSensorCell = rooms[currentRoomId].First();
+            int myCell = Grid.PosToCell(this);
+            if (otherSensorCell == myCell)
+                return false;
+
+            TmlConnectedElementTemperatureSensor sensor = knownSensors[otherSensorCell];
             averageTemp = sensor.averageTemp;
 
             return true;
@@ -311,9 +296,9 @@ namespace TooManySensors
         private void UpdateAverageTemp()
         {
             int myCell = Grid.PosToCell(this);
-            var room = rooms.First(x => x.Key == currentRoomId);
+            var room = rooms.FirstOrDefault(x => x.Key == currentRoomId);
 
-            if (room.Value.First() == myCell)
+            if (radius != 0 || room.Value.First() == myCell)
             {
                 float averageRoomTemperature = roomCells.Where(Grid.IsValidCell).Sum(cell => Grid.Temperature[cell]);
                 averageRoomTemperature /= roomCells.Count;
@@ -327,7 +312,11 @@ namespace TooManySensors
         /// <inheritdoc />
         public void Sim4000ms(float dt)
         {
-            if (string.IsNullOrEmpty(currentRoomId))
+            int myCell = Grid.PosToCell(this);
+            var room = rooms.FirstOrDefault(x => x.Key == currentRoomId);
+
+            if (string.IsNullOrEmpty(currentRoomId) ||
+                (!string.IsNullOrEmpty(currentRoomId) && room.Value.First() == myCell))
                 OnRoomRebuild();
             else
                 UpdateAverageTemp();
@@ -352,5 +341,56 @@ namespace TooManySensors
                 Toggle();
             }
         }
+
+        /// <inheritdoc />
+        public int SliderDecimalPlaces(int index)
+        {
+            return 0;
+        }
+
+        /// <inheritdoc />
+        public float GetSliderMin(int index)
+        {
+            return 0.0f;
+        }
+
+        /// <inheritdoc />
+        public float GetSliderMax(int index)
+        {
+            return 100.0f;
+        }
+
+        /// <inheritdoc />
+        public float GetSliderValue(int index)
+        {
+            return radius;
+        }
+
+        /// <inheritdoc />
+        public void SetSliderValue(float percent, int index)
+        {
+            radius = (int) Math.Round(percent);
+            if (radius != 0)
+                RemoveFromRoom();
+        }
+
+        /// <inheritdoc />
+        public string GetSliderTooltipKey(int index)
+        {
+            return STRINGS.BUILDINGS.PREFABS.TMLCONNECTEDELEMENTTEMPERATURESENSOR.SIDESCREEN_TOOLTIP;
+        }
+
+        /// <inheritdoc />
+        public string GetSliderTooltip(int index)
+        {
+            return STRINGS.BUILDINGS.PREFABS.TMLCONNECTEDELEMENTTEMPERATURESENSOR.SIDESCREEN_TOOLTIP;
+        }
+
+        /// <inheritdoc />
+        public string SliderTitleKey =>
+            "STRINGS.BUILDINGS.PREFABS.TMLCONNECTEDELEMENTTEMPERATURESENSOR.SIDESCREEN_TITTLE";
+
+        /// <inheritdoc />
+        public string SliderUnits => "";
     }
 }

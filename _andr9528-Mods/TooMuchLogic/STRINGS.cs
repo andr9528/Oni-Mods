@@ -43,6 +43,11 @@ namespace TooManySensors
                     public static LocString LOGIC_PORT_INACTIVE = (LocString) ("Otherwise, sends a " +
                                                                                UI.FormatAsAutomationState("Red Signal",
                                                                                    UI.AutomationState.Standby));
+
+                    public static LocString SIDESCREEN_TOOLTIP =
+                        (LocString) "Radius that the sensor works in. 0 being infinite.";
+
+                    public static LocString SIDESCREEN_TITTLE = (LocString) "Acting Radius";
                 }
             }
         }
