@@ -7,6 +7,8 @@ using System.Linq;
 using static ClusterTraitGenerationManager.ClusterData.CGSMClusterManager;
 using UnityEngine;
 using UtilLibs;
+using Microsoft.Build.Framework.XamlTypes;
+using TUNING;
 
 namespace ClusterTraitGenerationManager.ClusterData
 {
@@ -20,10 +22,23 @@ namespace ClusterTraitGenerationManager.ClusterData
         public string POIGroupUID = string.Empty;
 
         [JsonIgnore] public Sprite planetSprite;
+        [JsonIgnore] public Sprite planetMixingSprite => world_mixing?.planetSprite;
 
-        [JsonIgnore] public ProcGen.World world;
+        [JsonIgnore] public ProcGen.World world => world_mixing != null ? world_mixing.world : world_internal;
+        [JsonIgnore] public ProcGen.World World_Internal => world_internal;
+        [JsonIgnore] public bool IsMixed => world_mixing != null;
+        [JsonIgnore] public bool SupportsWorldMixing => placement != null && placement.worldMixing != null;
+        [JsonIgnore] public bool SupportsSubworldMixing => SubworldMixingMaxCount > 0;
+        [JsonIgnore] public int SubworldMixingMaxCount => world.subworldMixingRules != null ? world.subworldMixingRules.Count : 0;
+        [JsonIgnore] public StarmapItem MixingAsteroidSource => world_mixing;
+
+
+        [JsonIgnore] private ProcGen.World world_internal;
+        [JsonIgnore] private StarmapItem world_mixing;
         [JsonIgnore] public Vector2I originalWorldDimensions;
+        [JsonIgnore] public float originalWorldTraitScale;
         [JsonIgnore] public string ModName = string.Empty;
+        [JsonIgnore] public string DlcID = "";
 
         public WorldPlacement placement;
 
@@ -58,6 +73,11 @@ namespace ClusterTraitGenerationManager.ClusterData
                     if (Strings.TryGet(world.name, out var nameEntry))
                     {
                         var name = nameEntry.ToString();
+                        if (IsMixed && World_Internal != null && Strings.TryGet(World_Internal.name, out var namePreMixing))
+                        {
+                            name += " (" + namePreMixing.ToString() + ")";
+                        }
+
                         if (ModName != string.Empty)
                             name += " " + UIUtils.ColorText(STRINGS.UI.SPACEDESTINATIONS.MODDEDPLANET, UIUtils.rgb(212, 244, 199));
 
@@ -131,6 +151,10 @@ namespace ClusterTraitGenerationManager.ClusterData
         {
             get
             {
+                if (IsMixed)
+                    return MixingAsteroidSource.CustomPlanetDimensions;
+
+
                 if (UsingCustomDimensions)
                 {
                     return new(CustomX, CustomY);
@@ -139,14 +163,14 @@ namespace ClusterTraitGenerationManager.ClusterData
 
                 if (world != null)
                 {
-                    if (SizePreset != WorldSizePresets.Normal || RatioPreset!=WorldRatioPresets.Normal)
+                    if (SizePreset != WorldSizePresets.Normal || RatioPreset != WorldRatioPresets.Normal)
                     {
                         float sizePercentage = (float)SizePreset / 100f;
                         float ratioModifier = 0;
 
                         bool? ChooseHeight = null;
 
-                        if (RatioPreset!=WorldRatioPresets.Normal)
+                        if (RatioPreset != WorldRatioPresets.Normal)
                         {
                             int intRatio = (int)RatioPreset;
                             if (intRatio < 100)
@@ -183,13 +207,25 @@ namespace ClusterTraitGenerationManager.ClusterData
         WorldSizePresets SizePreset = WorldSizePresets.Normal;
         WorldRatioPresets RatioPreset = WorldRatioPresets.Normal;
         [JsonIgnore] public bool DefaultDimensions => SizePreset == WorldSizePresets.Normal && RatioPreset == WorldRatioPresets.Normal && !UsingCustomDimensions;
-        [JsonIgnore] public WorldSizePresets CurrentSizePreset => SizePreset;
-        [JsonIgnore] public WorldRatioPresets CurrentRatioPreset => RatioPreset;
+        [JsonIgnore] public WorldSizePresets CurrentSizePreset => IsMixed ? MixingAsteroidSource.SizePreset : SizePreset;
+        [JsonIgnore] public WorldRatioPresets CurrentRatioPreset => IsMixed ? MixingAsteroidSource.RatioPreset : RatioPreset;
 
-        [JsonIgnore] public float CurrentSizeMultiplier => UsingCustomDimensions ? CustomSizeIncrease : (float)SizePreset / 100f;
+        [JsonIgnore]
+        public float CurrentSizeMultiplier =>
+            IsMixed
+            ? MixingAsteroidSource.CurrentSizeMultiplier
+            : UsingCustomDimensions
+                ? CustomSizeIncrease
+                : (float)SizePreset / 100f;
 
         public void SetPlanetSizeToPreset(WorldSizePresets preset)
         {
+            if (IsMixed)
+            {
+                MixingAsteroidSource.SetPlanetSizeToPreset(preset);
+                return;
+            }
+
             CustomX = -1;
             CustomY = -1;
             UsingCustomDimensions = false;
@@ -197,6 +233,12 @@ namespace ClusterTraitGenerationManager.ClusterData
         }
         public void SetPlanetRatioToPreset(WorldRatioPresets preset)
         {
+            if (IsMixed)
+            {
+                MixingAsteroidSource.SetPlanetRatioToPreset(preset);
+                return;
+            }
+
             CustomX = -1;
             CustomY = -1;
             UsingCustomDimensions = false;
@@ -206,6 +248,13 @@ namespace ClusterTraitGenerationManager.ClusterData
         private bool UsingCustomDimensions = false;
         public void ApplyCustomDimension(int value, bool heightTrueWidthFalse)
         {
+            if (IsMixed)
+            {
+                MixingAsteroidSource.ApplyCustomDimension(value, heightTrueWidthFalse);
+                return;
+            }
+
+
             var currentDims = CustomPlanetDimensions;
             UsingCustomDimensions = true;
             if (CustomX == -1)
@@ -220,13 +269,13 @@ namespace ClusterTraitGenerationManager.ClusterData
             {
                 if (heightTrueWidthFalse)
                 {
-                    var rounded = Mathf.RoundToInt(Mathf.Max(Mathf.Min(value, originalWorldDimensions.Y * 2.6f), originalWorldDimensions.Y * 0.55f));
+                    var rounded = Mathf.RoundToInt(Mathf.Clamp(value, originalWorldDimensions.Y * 0.55f, originalWorldDimensions.Y * 2.6f));
                     if (rounded != CustomY)
                         CustomY = rounded;
                 }
                 else
                 {
-                    var rounded = Mathf.RoundToInt(Mathf.Max(Mathf.Min(value, originalWorldDimensions.X * 2.6f), originalWorldDimensions.X * 0.55f));
+                    var rounded = Mathf.RoundToInt(Mathf.Clamp(value, originalWorldDimensions.X * 0.55f, originalWorldDimensions.X * 2.6f));
 
                     if (rounded != CustomX)
                         CustomX = rounded;
@@ -260,9 +309,7 @@ namespace ClusterTraitGenerationManager.ClusterData
             }
         }
 
-
         float CustomSizeIncrease = -1f;
-
         public float InstancesToSpawn = 1;
         public bool MoreThanOnePossible = false;
         //public float MaxNumberOfInstances = 1;
@@ -438,10 +485,17 @@ namespace ClusterTraitGenerationManager.ClusterData
             this.category = category;
             this.planetSprite = sprite;
         }
+        public StarmapItem AssignDlc(string dlcId)
+        {
+            this.DlcID = dlcId;
+            return this;
+        }
+
         public StarmapItem MakeItemPlanet(ProcGen.World world)
         {
-            this.world = world;
+            this.world_internal = world;
             this.originalWorldDimensions = world.worldsize;
+            this.originalWorldTraitScale = world.worldTraitScale;
             //this.InitGeyserInfo();
 
             //XYratio = (float)world.worldsize.X / (float)world.worldsize.Y;
@@ -459,6 +513,8 @@ namespace ClusterTraitGenerationManager.ClusterData
                 this.ModName = sourceMod.title;
             }
 
+            SettingsCache.GetDlcIdAndPath(filepath, out var dlcId, out _);
+            this.AssignDlc(dlcId);
             return this;
         }
 
@@ -493,6 +549,7 @@ namespace ClusterTraitGenerationManager.ClusterData
             placement.allowedRings = new(placement2.allowedRings.min, placement2.allowedRings.max);
             placement.buffer = placement2.buffer;
             placement.locationType = placement2.locationType;
+            placement.worldMixing = placement2.worldMixing;
             return this;
         }
         public StarmapItem MakeItemPOI(SpaceMapPOIPlacement placement2)
@@ -504,12 +561,252 @@ namespace ClusterTraitGenerationManager.ClusterData
             placementPOI.avoidClumping = placement2.avoidClumping;
             placementPOI.numToSpawn = placement2.numToSpawn;
             placementPOI.allowedRings = new(placement2.allowedRings.min, placement2.allowedRings.max);
+            placementPOI.guarantee = placement2.guarantee;
             originalMaxPOI = placement2.allowedRings.max;
             originalMinPOI = placement2.allowedRings.min;
             //MaxNumberOfInstances = placement2.numToSpawn * 5f; 
             InstancesToSpawn = placement2.numToSpawn;
             return this;
         }
+        public StarmapItem SetWorldMixing(StarmapItem mix)
+        {
+            world_mixing = mix;
+            return this;
+        }
+
+
+        #region GeyserBlacklist
+
+        private bool _geyserBlacklistAffectsNonGenerics = false;
+        public bool GeyserBlacklistAffectsNonGenerics => _geyserBlacklistAffectsNonGenerics;
+
+        private List<string> _geyserBlacklistIDs = new();
+        public List<string> GeyserBlacklistIDs => _geyserBlacklistIDs;
+
+        public void SetGeyserBlacklist(List<string> NEWs)
+        {
+            _geyserBlacklistIDs = NEWs;
+        }
+        public void SetGeyserBlacklistAffectsNonGenerics(bool affectsNongenerics)
+        {
+            _geyserBlacklistAffectsNonGenerics = affectsNongenerics;
+        }
+
+        public void AddGeyserBlacklist(string geyserID)
+        {
+            _geyserBlacklistIDs.Add(geyserID);
+        }
+        public void RemoveGeyserBlacklist(string geyserID)
+        {
+            _geyserBlacklistIDs.Remove(geyserID);
+        }
+        public bool HasGeyserBlacklisted(string geyserID)
+        {
+            return GeyserBlacklistIDs.Contains(geyserID);
+        }
+
+        #endregion
+
+        #region GeyserOverrides
+
+        private List<string> _geyserOverrideIDs = new();
+        public List<string> GeyserOverrideIDs => _geyserOverrideIDs;
+
+        public void SetGeyserOverrides(List<string> NEWs)
+        {
+            _geyserOverrideIDs = NEWs;
+            for (int i = _geyserOverrideCount - 1; i >= 0; i--)
+            {
+                var currentGeyser = _geyserOverrideIDs[i];
+                if (!ModAssets.AllGeysers.TryGetValue(currentGeyser, out _))
+                {
+                    SgtLogger.l("invalid geyser found: " + currentGeyser);
+                    _geyserOverrideIDs.RemoveAt(i);
+                }
+            }
+        }
+        public void ClearGeyserOverrides()
+        {
+            GeyserOverrideIDs.Clear();
+            GeyserBlacklistIDs.Clear();
+            _geyserBlacklistAffectsNonGenerics = false;
+        }
+
+        public void AddGeyserOverride(string geyserID)
+        {
+            GeyserOverrideIDs.Add(geyserID);
+        }
+        public void RemoveGeyserOverrideAt(int index)
+        {
+            GeyserOverrideIDs.RemoveAt(index);
+        }
+        public int GetCurrentGeyserOverrideCount()
+        {
+            return GeyserOverrideIDs.Count;
+        }
+        public bool CanAddGeyserOverrides() => GetMaxGeyserOverrideCount() > 0;
+
+        public int GetMaxGeyserOverrideCount()
+        {
+            int totalCountRules = 0;
+            int totalCountTraits = 0;
+
+            if (world != null && world.worldTemplateRules != null) //Grabbing geyserGenericSpawns
+            {
+                foreach (var rule in world.worldTemplateRules)
+                {
+                    if (rule.names != null && rule.names.Count() == 1 && rule.names[0] == "geysers/generic")
+                    {
+                        totalCountRules += rule.times;
+                    }
+                }
+            }
+            foreach (var traitID in CurrentTraits) //grabbing generics from traits
+            {
+                if (SettingsCache.worldTraits.TryGetValue(traitID, out var trait))
+                {
+                    if (trait != null && trait.removeWorldTemplateRulesById != null && trait.removeWorldTemplateRulesById.Count() > 0)
+                    {
+                        if (trait.removeWorldTemplateRulesById.Contains("GenericGeysers")) //Geodormant removes the main rule and replaces it with a 9 geyser rule
+                            totalCountRules = 0;
+                    }
+
+                    if (trait != null && trait.additionalWorldTemplateRules != null)
+                    {
+                        foreach (var rule in trait.additionalWorldTemplateRules)
+                        {
+                            if (rule.names != null && rule.names.Count() == 1 && rule.names[0] == "geysers/generic")
+                            {
+                                totalCountTraits += rule.times;
+                            }
+                        }
+                    }
+                }
+            }
+            return totalCountTraits + totalCountRules;
+        }
+
+        #endregion
+
+        #region SkyFixedTraits
+
+
+        private void BackupOriginalWorldSkyFixedTraits()
+        {
+            if (world != null)
+            {
+                if (world.fixedTraits == null)
+                    world.fixedTraits = new();
+
+                if (!ModAssets.ChangedSkyFixedTraits.ContainsKey(world))
+                {
+                    ModAssets.ChangedSkyFixedTraits[world] = new List<string>(world.fixedTraits);
+                }
+            }
+        }
+        public void SetFixedSkyTraits(List<string> fixedSkyTraits)
+        {
+            if (fixedSkyTraits == null || fixedSkyTraits.Count == 0 || world == null)
+                return;
+
+
+            string lightTrait = fixedSkyTraits.FirstOrDefault(t => ModAssets.SunlightFixedTraits.ContainsKey(t));
+            if (lightTrait != null)
+            {
+                SetSunlightValue(lightTrait);
+            }
+
+            string radTrait = fixedSkyTraits.FirstOrDefault(t => ModAssets.CosmicRadiationFixedTraits.ContainsKey(t));
+            if (radTrait != null && DlcManager.IsExpansion1Active())
+            {
+                SetRadiationValue(radTrait);
+            }
+
+            string northernLightTrait = fixedSkyTraits.FirstOrDefault(t => ModAssets.NorthernLightsFixedTraits.ContainsKey(t));
+            if (northernLightTrait != null)
+            {
+                SetNorthernLightsValue(northernLightTrait);
+            }
+
+        }
+        public string GetSunlightValue()
+        {
+            if (world == null)
+                return null;
+
+
+            string currentValue = world.fixedTraits.FirstOrDefault(t => ModAssets.SunlightFixedTraits.ContainsKey(t));
+            if (currentValue != null)
+                return currentValue;
+
+            return FIXEDTRAITS.SUNLIGHT.NAME.DEFAULT;
+        }
+        public string GetRadiationValue()
+        {
+            if (world == null)
+                return null;
+
+
+            string currentValue = world.fixedTraits.FirstOrDefault(t => ModAssets.CosmicRadiationFixedTraits.ContainsKey(t));
+            if (currentValue != null)
+                return currentValue;
+
+            return FIXEDTRAITS.COSMICRADIATION.NAME.DEFAULT;
+        }
+        public string GetNorthernLightsValue()
+        {
+            if (world == null)
+                return null;
+
+
+            string currentValue = world.fixedTraits.FirstOrDefault(t => ModAssets.NorthernLightsFixedTraits.ContainsKey(t));
+            if (currentValue != null)
+                return currentValue;
+
+            return FIXEDTRAITS.NORTHERNLIGHTS.NAME.DEFAULT;
+        }
+
+        public void SetSunlightValue(string traitId)
+        {
+            if (world == null)
+                return;
+            BackupOriginalWorldSkyFixedTraits();
+
+            SgtLogger.l(traitId, "Trait LIGHT");
+            string currentValue = world.fixedTraits.FirstOrDefault(t => ModAssets.SunlightFixedTraits.ContainsKey(t));
+            if(currentValue !=null)
+                world.fixedTraits.Remove(currentValue);
+            world.fixedTraits.Add(traitId);
+
+        }
+        public void SetRadiationValue(string traitId)
+        {
+            if(!DlcManager.IsExpansion1Active())
+                return;
+
+            if (world == null)
+                return;
+            BackupOriginalWorldSkyFixedTraits();
+            SgtLogger.l(traitId, "Trait RAD");
+
+            string currentValue = world.fixedTraits.FirstOrDefault(t => ModAssets.CosmicRadiationFixedTraits.ContainsKey(t));
+            if (currentValue != null)
+                world.fixedTraits.Remove(currentValue);
+            world.fixedTraits.Add(traitId);
+        }
+        public void SetNorthernLightsValue(string traitId)
+        {
+            if (world == null)
+                return;
+            BackupOriginalWorldSkyFixedTraits();
+            SgtLogger.l(traitId, "Trait NL");
+            string currentValue = world.fixedTraits.FirstOrDefault(t => ModAssets.NorthernLightsFixedTraits.ContainsKey(t));
+            if (currentValue != null)
+                world.fixedTraits.Remove(currentValue);
+            world.fixedTraits.Add(traitId);            
+        }
+
+        #endregion
 
 
         #region PlanetMeteors
@@ -519,9 +816,9 @@ namespace ClusterTraitGenerationManager.ClusterData
             get
             {
                 var seasons = new List<MeteorShowerSeason>();
+                var db = Db.Get();
                 if (world != null)
                 {
-                    var db = Db.Get();
                     foreach (var season in world.seasons)
                     {
                         var seasonData = (db.GameplaySeasons.TryGet(season) as MeteorShowerSeason);
@@ -529,6 +826,19 @@ namespace ClusterTraitGenerationManager.ClusterData
                             seasons.Add(seasonData);
                     }
                 }
+                if (IsMixed
+                    && placement.worldMixing != null
+                    && placement.worldMixing.additionalSeasons != null
+                    )
+                {
+                    foreach (var season in placement.worldMixing.additionalSeasons)
+                    {
+                        var seasonData = (db.GameplaySeasons.TryGet(season) as MeteorShowerSeason);
+                        if (seasonData != null)
+                            seasons.Add(seasonData);
+                    }
+                }
+
                 return seasons;
             }
         }
@@ -538,22 +848,17 @@ namespace ClusterTraitGenerationManager.ClusterData
             get
             {
                 var showers = new List<MeteorShowerEvent>();
-                if (world != null)
+
+                var db = Db.Get();
+                foreach (var seasonData in CurrentMeteorSeasons)
                 {
-                    var db = Db.Get();
-                    foreach (var season in world.seasons)
+                    if (seasonData != null)
                     {
-                        var seasonData = (db.GameplaySeasons.TryGet(season) as MeteorShowerSeason);
-                        if (seasonData != null)
+                        foreach (var shower in seasonData.events)
                         {
-                            foreach (var shower in seasonData.events)
-                            {
-                                var showerEvent = shower as MeteorShowerEvent;
-                                if (!showers.Contains(showerEvent))
-                                    showers.Add(showerEvent);
-
-                            }
-
+                            var showerEvent = shower as MeteorShowerEvent;
+                            if (!showers.Contains(showerEvent))
+                                showers.Add(showerEvent);
                         }
                     }
                 }
@@ -561,7 +866,7 @@ namespace ClusterTraitGenerationManager.ClusterData
             }
         }
 
-        private void BackupOriginalWorldTraits()
+        private void BackupOriginalWorldMeteors()
         {
             if (world != null)
             {
@@ -574,7 +879,7 @@ namespace ClusterTraitGenerationManager.ClusterData
 
         public void AddMeteorSeason(string id)
         {
-            BackupOriginalWorldTraits();
+            BackupOriginalWorldMeteors();
             if (world != null)
             {
                 world.seasons.Add(id);
@@ -583,7 +888,7 @@ namespace ClusterTraitGenerationManager.ClusterData
 
         public void RemoveMeteorSeason(string id)
         {
-            BackupOriginalWorldTraits();
+            BackupOriginalWorldMeteors();
             if (world != null)
             {
                 if (world.seasons.Contains(id))
@@ -601,7 +906,18 @@ namespace ClusterTraitGenerationManager.ClusterData
 
         private List<string> currentPlanetTraits = new List<string>();
         [JsonIgnore] public List<string> CurrentTraits => currentPlanetTraits;
-        public void SetWorldTraits(List<string> NEWs) => currentPlanetTraits = NEWs;
+        public void SetWorldTraits(List<string> NEWs)
+        {
+            currentPlanetTraits = NEWs;
+            for (int i = currentPlanetTraits.Count - 1; i >= 0; i--)
+            {
+                var currentTrait = currentPlanetTraits[i];
+                if (!ModAssets.AllTraitsWithRandomDict.TryGetValue(currentTrait, out _))
+                {
+                    currentPlanetTraits.RemoveAt(i);
+                }
+            }
+        }
 
 
         public static List<WorldTrait> AllowedWorldTraitsFor(List<string> currentTraits, ProcGen.World world)
@@ -670,7 +986,6 @@ namespace ClusterTraitGenerationManager.ClusterData
                 currentPlanetTraits.Remove(traitID);
             return allowed;
         }
-
         public bool AddWorldTrait(WorldTrait trait)
         {
             string traitID = trait.filePath;

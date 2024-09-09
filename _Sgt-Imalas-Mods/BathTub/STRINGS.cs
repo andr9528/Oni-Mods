@@ -9,6 +9,26 @@ namespace BathTub
 {
     internal class STRINGS
     {
+        public class MOODLAMPSKINS
+        {
+            public static LocString RUBBERDUCKIE = "Rubber Duckie";
+        }
+        public class ITEMS
+        {
+            public class INDUSTRIAL_PRODUCTS
+            {
+                public class BT_RUBBERDUCKIE
+                {
+                    public static LocString NAME = "Rubber Duckie";
+                    public static LocString DESC = "All you need for a refreshing bath.\nFloats on liquids.\n\nArthur likes to know its exact function.\n\nHelps you think.";
+
+
+                    public static LocString TOOLTIP = "Toggle random quack sounds. On by default";
+                    public static LocString BUTTON_ON = "Shut! (disables random quacks)";
+                    public static LocString BUTTON_OFF = "Quack! (enables random quacks)";
+                }
+            }
+        }
         public class BUILDING
         {
             public class STATUSITEMS

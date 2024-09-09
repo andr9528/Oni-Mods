@@ -110,7 +110,7 @@ namespace Imalas_TwitchChaosEvents.Elements
                 __instance.AddGrowthRule(poopRule);
             }
         }
-        [HarmonyPatch(typeof(Game), "InitializeFXSpawners")]
+        [HarmonyPatch(typeof(Game), nameof(Game.InitializeFXSpawners))]
         public static class Game_InitializeFXSpawners_Patch
         {
             public static SpawnFXHashes ITCE_PoopyLiquidFX = (SpawnFXHashes)1024551740;
@@ -169,7 +169,7 @@ namespace Imalas_TwitchChaosEvents.Elements
 
 
 
-        [HarmonyPatch(typeof(WaterCoolerChore.States), "Drink")]
+        [HarmonyPatch(typeof(WaterCoolerChore.States), "TriggerDrink")]
         public class WaterCoolerChore_States_Drink_Patch
         {
             public static void Prefix(WaterCoolerChore.States __instance, WaterCoolerChore.StatesInstance smi)

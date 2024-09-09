@@ -4,10 +4,12 @@ using Klei.AI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UtilLibs;
+using static Klei.AI.Effects;
 
 namespace GoodByeFrostByte
 {
@@ -63,7 +65,7 @@ namespace GoodByeFrostByte
                     float Multiplied = __instance.converter.multiplier * totalValue; //-0.5f
                     float baseValue = __instance.converter.baseValue; //0;
                                                                       //result wanted: 0.66 MS -> -0.44
-                    float division = 1f / ((-Multiplied) + 1); //50% ms at -10, 33%ms at -20, 66%ms at 
+                    float division = 1f / ((-Multiplied) + 1); //50% ms at -10, 33%ms at -20, 66%ms at -5
 
                     __result = baseValue - 1 + division;
                     return false;
@@ -106,13 +108,39 @@ namespace GoodByeFrostByte
         /// <summary>
         /// adjust scolding temp
         /// </summary>
-        [HarmonyPatch(typeof(ScaldingMonitor.Instance))]
-        [HarmonyPatch(nameof(ScaldingMonitor.Instance.GetScoldingThreshold))]
+        [HarmonyPatch(typeof(ScaldingMonitor.Instance), MethodType.Constructor, new Type[] { typeof(IStateMachineTarget), typeof(ScaldingMonitor.Def) })]
         public static class ScaldingMonitor_GetScoldingThreshold_Patch
         {
-            public static void Postfix(ref float __result)
+            public static void Prefix(ScaldingMonitor.Def def)
             {
-                __result = UtilMethods.GetKelvinFromC(Config.Instance.FrostBiteThreshold);
+                def.defaultScoldingTreshold = UtilMethods.GetKelvinFromC(Config.Instance.FrostBiteThreshold);
+            }
+        }
+        /// <summary>
+        /// fix missing temperature immunities on lead and jet suits
+        /// </summary>
+        [HarmonyPatch]
+        public static class CreateEquipmentDef_EffectImmunities
+        {
+            [HarmonyPostfix]
+            public static void Postfix(EquipmentDef __result)
+            {
+                if (__result.EffectImmunites != null)
+                {
+                    var effects = Db.Get().effects;
+
+                    if (!__result.EffectImmunites.Any(effect => effect.Id == "ColdAir"))
+                        __result.EffectImmunites.Add(effects.Get("ColdAir"));
+                    if (!__result.EffectImmunites.Any(effect => effect.Id == "WarmAir"))
+                        __result.EffectImmunites.Add(effects.Get("WarmAir"));
+                }
+            }
+            [HarmonyTargetMethods]
+            internal static IEnumerable<MethodBase> TargetMethods()
+            {
+                const string name = nameof(IEquipmentConfig.CreateEquipmentDef);
+                yield return typeof(JetSuitConfig).GetMethod(name);
+                yield return typeof(LeadSuitConfig).GetMethod(name);
             }
         }
 

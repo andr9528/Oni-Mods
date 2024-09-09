@@ -176,6 +176,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DlcSwapButton", "_Sgt-Imala
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DontCrashMyMods", "_Sgt-Imalas-Mods\DontCrashMyMods\DontCrashMyMods.csproj", "{036BB435-8148-41B5-BFAF-B70A903B3770}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoldHatch", "_Sgt-Imalas-Mods\GoldHatch\GoldHatch.csproj", "{D6BA8125-D114-4A32-931B-4D909129C5DE}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoodByeFrostByte", "_Sgt-Imalas-Mods\GoodByeFrostByte\GoodByeFrostByte.csproj", "{C96F2DB2-3373-41BD-88C8-8251028C691E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MassMoveTo", "_Sgt-Imalas-Mods\MassMoveTo\MassMoveTo.csproj", "{D969C6FC-DADD-4867-8226-94365A6631B8}"
@@ -683,8 +685,6 @@ Global
 		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Release2|Any CPU.ActiveCfg = Release|Any CPU
-		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Release2|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

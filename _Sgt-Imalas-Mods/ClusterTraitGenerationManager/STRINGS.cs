@@ -65,6 +65,16 @@
                     {
                         public static LocString LABEL = (LocString)"[STARMAPITEMTYPEPL] in this category:";
                     }
+                    public class STARITEMCONTENT
+                    {
+                        public class INPUT
+                        {
+                            public class TEXTAREA
+                            {
+                                public static LocString PLACEHOLDER = (LocString)"Enter text to filter asteroids...";
+                            }
+                        }
+                    }
                     public class VANILLASTARMAPCONTENT
                     {
                         public class VANILLASTARMAPCONTAINER
@@ -183,6 +193,11 @@
                             {
                                 public static LocString LABEL = (LocString)"Avoid Clumping:";
                                 public static LocString TOOLTIP = (LocString)"When enabled, POIs generated from this group cannot generate adjacent to other POIs.";
+                            }
+                            public class POI_GUARANTEE
+                            {
+                                public static LocString LABEL = (LocString)"Guarantee all POIs:";
+                                public static LocString TOOLTIP = (LocString)"When enabled, all POIs will be spawned, even if their placement fails by regular placement rules.";
                             }
                             public class SO_POIGROUP_REMOVE
                             {
@@ -336,6 +351,31 @@
                                 }
                             }
 
+                            public class ASTEROIDSKY
+                            {
+                                public class DESCRIPTOR
+                                {
+                                    public static LocString LABEL = (LocString)"Asteroid Sky:";
+                                    public static LocString TOOLTIP = (LocString)"The space behavior of this asteroid";
+                                }
+                                public class CONTENT
+                                {
+
+                                    public class SUNLIGHTCYCLE
+                                    {
+                                        public static LocString LABEL = (LocString)"Sunlight:";
+                                    }
+                                    public class RADIATIONCYCLE
+                                    {
+                                        public static LocString LABEL = (LocString)"Space Radiation:";
+                                    }
+                                    public class NORTHERNLIGHTSCYCLE
+                                    {
+                                        public static LocString LABEL = (LocString)"Northern Lights:";
+                                    }
+                                }
+
+                            }
 
                             public class ASTEROIDSIZE
                             {
@@ -458,6 +498,66 @@
                                 }
                             }
 
+                            public class ASTEROIDGEYSERS
+                            {
+                                public class DESCRIPTOR
+                                {
+                                    public static LocString LABEL = (LocString)"Asteroid Geysers:";
+                                    public static LocString NONE = (LocString)"No available geysers";
+                                }
+                                public class CONTENT
+                                {
+                                    public class GUARANTEED
+                                    {
+                                        public class DESCRIPTOR
+                                        {
+                                            public static LocString LABEL = (LocString)"Overrides:";
+                                            public static LocString INFOTOOLTIP = (LocString)"Geyser overrides can be used to force specific geysers to appear in place of fully randomly generated geysers.\nSemi-Random, pre-picked geysers cannot be changed.\nfully random geysers also include those added by the \"Geoactive\" trait.";
+                                        }
+                                        public class SCROLLAREA
+                                        {
+                                            public class CONTENT
+                                            {
+                                                public class NONE
+                                                {
+                                                    public static LocString LABEL = "No geyser overrides";
+                                                }
+                                            }
+                                        }
+                                        public class ADDGEYSERBTN
+                                        {
+                                            public static LocString TEXT = "Add Geyser Override";
+                                        }
+                                    }
+                                    public class BLACKLIST
+                                    {
+                                        public class DESCRIPTOR
+                                        {
+                                            public static LocString LABEL = (LocString)"Blacklist:";
+                                            public static LocString INFOTOOLTIP = "Prevent geyser types from generating as fully random geysers.\nThese are then replaced with random (generic) geysers.\nHas no effect on semi-random, curated geysers unless toggled on";
+                                        }
+                                        public class BLACKLISTAFFECTNONGENERICS
+                                        {
+                                            public static LocString LABEL = (LocString)"Blacklist affects all geysers";
+                                            public static LocString TOOLTIP = "If enabled, the blacklist will also replace predetermined and curated geysers from the blacklist with random geysers.";
+                                        }
+                                        public class SCROLLAREA
+                                        {
+                                            public class CONTENT
+                                            {
+                                                public class NONE
+                                                {
+                                                    public static LocString LABEL = "No blacklisted geysers";
+                                                }
+                                            }
+                                        }
+                                        public class BLACKLISTBUTTON
+                                        {
+                                            public static LocString TEXT = "Add geyser to blacklist";
+                                        }
+                                    }
+                                }
+                            }
 
                             public class METEORSEASONCYCLE
                             {
@@ -737,8 +837,9 @@
             public class SEEDLOCK
             {
                 public static LocString NAME = (LocString)"Seed rerolling affects traits";
-                public static LocString NAME_SHORT = (LocString)"rerolling Traits:";
-                public static LocString NAME_STARMAP = (LocString)"rerolling Starmap:";
+                public static LocString NAME_SHORT = (LocString)"reroll Traits:";
+                public static LocString NAME_STARMAP = (LocString)"reroll Starmap:";
+                public static LocString NAME_MIXING = (LocString)"reroll Mixings:";
                 public static LocString SEED_PLACEHOLDER = (LocString)"Enter Seed...";
                 public static LocString TOOLTIP = (LocString)"When enabled, rerolling the seed will also reroll the planet traits to those of the new seed.\nDisable to reroll the seed without affecting the traits.\nOnly blocks trait rerolling for the seed setting above.";
                 public static LocString TOOLTIP_STARMAP = (LocString)"When enabled, rerolling the seed will also reroll the starmap to the new seed.\nDisable to reroll the seed without affecting the starmap.";

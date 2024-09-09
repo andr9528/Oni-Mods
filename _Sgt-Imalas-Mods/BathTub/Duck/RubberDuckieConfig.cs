@@ -1,16 +1,17 @@
-﻿using System;
+﻿using BathTub.Duck.Floating;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace CannedFoods
+namespace BathTub.Duck
 {
-    class CanScrapConfig : IEntityConfig
+    internal class RubberDuckieConfig : IEntityConfig
     {
-        public const string ID = "CF_CanScrap";
-       
+        public const string ID = "BT_RubberDuckie";
+        public static ComplexRecipe recipe;
         public string[] GetDlcIds()
         {
             return DlcManager.AVAILABLE_ALL_VERSIONS;
@@ -18,34 +19,31 @@ namespace CannedFoods
 
         public GameObject CreatePrefab()
         {
-            var canElement = Config.Instance.GetCanElement();
             GameObject looseEntity = EntityTemplates.CreateLooseEntity(
                   id: ID,
-                  name: STRINGS.ITEMS.INDUSTRIAL_PRODUCTS.CF_CANSCRAP.NAME,
-                  desc: STRINGS.ITEMS.INDUSTRIAL_PRODUCTS.CF_CANSCRAP.DESC, 
-                  mass: 1f,
-                  unitMass: false,
-                  anim: Assets.GetAnim("can_scrap_kanim"),
+                  name: STRINGS.ITEMS.INDUSTRIAL_PRODUCTS.BT_RUBBERDUCKIE.NAME,
+                  desc: STRINGS.ITEMS.INDUSTRIAL_PRODUCTS.BT_RUBBERDUCKIE.DESC,
+                  mass: 10f,
+                  unitMass: true,
+                  anim: Assets.GetAnim("rubber_ducky_kanim"),
                   initialAnim: "object",
-                  sceneLayer: Grid.SceneLayer.Front,
+                  sceneLayer: Grid.SceneLayer.Ore,
                   collisionShape: EntityTemplates.CollisionShape.RECTANGLE,
-                  width: 0.64f,
+                  width: 0.7f,
                   height: 0.7f,
                   isPickupable: true,
-                  element: canElement,
+                  element: SimHashes.Polypropylene,
                   additionalTags: new List<Tag>()
                   {
-                      GameTags.IndustrialIngredient
+                      GameTags.IndustrialProduct
                   });
 
-            looseEntity.AddOrGet<EntitySplitter>();
-
-
             looseEntity.AddOrGet<OccupyArea>();
-
+            looseEntity.AddOrGet<Floater>();
+            looseEntity.AddOrGet<DuckNoises>();
             DecorProvider decorProvider = looseEntity.AddOrGet<DecorProvider>();
-            decorProvider.SetValues(TUNING.DECOR.PENALTY.TIER5);
-            decorProvider.overrideName = STRINGS.ITEMS.INDUSTRIAL_PRODUCTS.CF_CANSCRAP.NAME;
+            decorProvider.SetValues(TUNING.DECOR.BONUS.TIER3);
+            decorProvider.overrideName = STRINGS.ITEMS.INDUSTRIAL_PRODUCTS.BT_RUBBERDUCKIE.NAME;
 
             return looseEntity;
         }
