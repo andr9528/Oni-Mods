@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
 using TUNING;
 using UnityEngine;
+using Utilities.Abstractions;
+using UtilLibs;
 
 namespace TooMuchLogic
 {
-    public class TmlConnectedElementTemperatureSensorConfig : IBuildingConfig
+    public class TmlConnectedElementTemperatureSensorConfig : IBuildingConfig, IPatchMe
     {
         public static string ID = "TmlConnectedElementTemperatureSensor";
 
@@ -51,6 +53,24 @@ namespace TooMuchLogic
             temperatureSensor.minTemp = 0.0f;
             temperatureSensor.maxTemp = 9999f;
             go.GetComponent<KPrefabID>().AddTag(GameTags.OverlayInFrontOfConduits);
+        }
+
+        /// <inheritdoc />
+        public string GetId()
+        {
+            return ID;
+        }
+
+        /// <inheritdoc />
+        public string GetPlanMenuCategory()
+        {
+            return GameStrings.PlanMenuCategory.Automation;
+        }
+
+        /// <inheritdoc />
+        public string GetTechnology()
+        {
+            return GameStrings.Technology.Gases.HVAC;
         }
     }
 }

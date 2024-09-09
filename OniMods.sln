@@ -184,6 +184,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MassMoveTo", "_Sgt-Imalas-M
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StoragePiles", "_Sgt-Imalas-Mods\StoragePiles\StoragePiles.csproj", "{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utilities", "_andr9528-Mods\Utilities\Utilities.csproj", "{2F063486-4F7C-4986-832C-7C51FA45D86A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -693,6 +695,12 @@ Global
 		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Release2|Any CPU.ActiveCfg = Release|Any CPU
 		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E}.Release2|Any CPU.Build.0 = Release|Any CPU
+		{2F063486-4F7C-4986-832C-7C51FA45D86A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F063486-4F7C-4986-832C-7C51FA45D86A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F063486-4F7C-4986-832C-7C51FA45D86A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F063486-4F7C-4986-832C-7C51FA45D86A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F063486-4F7C-4986-832C-7C51FA45D86A}.Release2|Any CPU.ActiveCfg = Release|Any CPU
+		{2F063486-4F7C-4986-832C-7C51FA45D86A}.Release2|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -782,6 +790,7 @@ Global
 		{C96F2DB2-3373-41BD-88C8-8251028C691E} = {DF2C1A33-8F07-40F3-BE9F-113683D9BBC8}
 		{D969C6FC-DADD-4867-8226-94365A6631B8} = {DF2C1A33-8F07-40F3-BE9F-113683D9BBC8}
 		{17A07EFE-86F1-47CA-B3F7-091ABA898C9E} = {DF2C1A33-8F07-40F3-BE9F-113683D9BBC8}
+		{2F063486-4F7C-4986-832C-7C51FA45D86A} = {1186B31F-04F3-4DDC-8077-FBB1DAB3302B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {898228DF-1C3B-4527-B10D-83145966681D}

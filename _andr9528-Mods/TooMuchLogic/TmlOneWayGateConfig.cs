@@ -1,8 +1,10 @@
 ﻿using UnityEngine;
+using Utilities.Abstractions;
+using UtilLibs;
 
 namespace TooMuchLogic
 {
-    public class TmlOneWayGateConfig : LogicGateBaseConfig
+    public class TmlOneWayGateConfig : LogicGateBaseConfig, IPatchMe
     {
         public static string ID = "TmlOneWayGate";
 
@@ -47,5 +49,23 @@ namespace TooMuchLogic
 
         /// <inheritdoc />
         public override CellOffset[] ControlPortOffsets => (CellOffset[]) null;
+
+        /// <inheritdoc />
+        public string GetId()
+        {
+            return ID;
+        }
+
+        /// <inheritdoc />
+        public string GetPlanMenuCategory()
+        {
+            return GameStrings.PlanMenuCategory.Automation;
+        }
+
+        /// <inheritdoc />
+        public string GetTechnology()
+        {
+            return GameStrings.Technology.Computers.GenericSensors;
+        }
     }
 }

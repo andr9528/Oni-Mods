@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using Utilities.Services;
 using UtilLibs;
 using static TooMuchLogic.ModAssets;
 
@@ -23,10 +24,7 @@ namespace TooMuchLogic
         {
             public static void Prefix()
             {
-                InjectionMethods.AddBuildingToPlanScreenBehindNext(GameStrings.PlanMenuCategory.Automation,
-                    TmlConnectedElementTemperatureSensorConfig.ID);
-                InjectionMethods.AddBuildingToPlanScreenBehindNext(GameStrings.PlanMenuCategory.Automation,
-                    TmlOneWayGateConfig.ID);
+                PatchService.AddBuildingsToPlanScreen();
                 //ModUtil.AddBuildingToPlanScreen(GameStrings.PlanMenuCategory.XXXX, XXXX.ID);
             }
         }
@@ -49,10 +47,7 @@ namespace TooMuchLogic
         {
             public static void Postfix()
             {
-                InjectionMethods.AddBuildingToTechnology(GameStrings.Technology.Gases.HVAC,
-                    TmlConnectedElementTemperatureSensorConfig.ID);
-                InjectionMethods.AddBuildingToTechnology(GameStrings.Technology.Computers.GenericSensors,
-                    TmlOneWayGateConfig.ID);
+                PatchService.AddBuildingToTechnology();
             }
         }
     }

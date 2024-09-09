@@ -42,5 +42,6 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\_Sgt-Imalas-Mods\UtilLibs\UtilLibs.csproj" />
+	  <ProjectReference Include="..\Utilities\Utilities.csproj" />
 	</ItemGroup>
 </Project>
