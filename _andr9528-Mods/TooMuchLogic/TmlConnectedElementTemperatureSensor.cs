@@ -5,14 +5,14 @@ using JetBrains.Annotations;
 using KSerialization;
 using Microsoft.Build.Utilities;
 using STRINGS;
-using TooManySensors.Services;
+using TooMuchLogic.Services;
 using UnityEngine;
 using UtilLibs;
 using static STRINGS.MISC.STATUSITEMS;
 using static STRINGS.UI;
 using CODEX = STRINGS.CODEX;
 
-namespace TooManySensors
+namespace TooMuchLogic
 {
     public class TmlConnectedElementTemperatureSensor : Switch, ISaveLoadable, IThresholdSwitch, ISim4000ms,
         ISingleSliderControl

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace TooManySensors.Services
+namespace TooMuchLogic.Services
 {
     public class CellGrapperService
     {

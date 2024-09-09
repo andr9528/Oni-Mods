@@ -2,7 +2,7 @@
 using TUNING;
 using UnityEngine;
 
-namespace TooManySensors
+namespace TooMuchLogic
 {
     public class TmlConnectedElementTemperatureSensorConfig : IBuildingConfig
     {

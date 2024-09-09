@@ -3,7 +3,7 @@ using KMod;
 using System;
 using UtilLibs;
 
-namespace TooManySensors
+namespace TooMuchLogic
 {
     public class Mod : UserMod2
     {
