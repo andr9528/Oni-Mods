@@ -8,9 +8,9 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UtilLibs;
-using static TooManySensors.ModAssets;
+using static TooMuchLogic.ModAssets;
 
-namespace TooManySensors
+namespace TooMuchLogic
 {
     internal class Patches
     {
@@ -25,6 +25,8 @@ namespace TooManySensors
             {
                 InjectionMethods.AddBuildingToPlanScreenBehindNext(GameStrings.PlanMenuCategory.Automation,
                     TmlConnectedElementTemperatureSensorConfig.ID);
+                InjectionMethods.AddBuildingToPlanScreenBehindNext(GameStrings.PlanMenuCategory.Automation,
+                    TmlOneWayGateConfig.ID);
                 //ModUtil.AddBuildingToPlanScreen(GameStrings.PlanMenuCategory.XXXX, XXXX.ID);
             }
         }
@@ -47,8 +49,10 @@ namespace TooManySensors
         {
             public static void Postfix()
             {
-                InjectionMethods.AddBuildingToTechnology(GameStrings.Technology.Computers.GenericSensors,
+                InjectionMethods.AddBuildingToTechnology(GameStrings.Technology.Gases.HVAC,
                     TmlConnectedElementTemperatureSensorConfig.ID);
+                InjectionMethods.AddBuildingToTechnology(GameStrings.Technology.Computers.GenericSensors,
+                    TmlOneWayGateConfig.ID);
             }
         }
     }
