@@ -15,12 +15,12 @@ namespace TooMuchLogic
             {
                 public class TMLCONNECTEDELEMENTTEMPERATURESENSOR
                 {
-                    public static LocString NAME = (LocString) UI.FormatAsLink("Thermo Connected Element Sensor",
+                    public static LocString NAME = (LocString) UI.FormatAsLink("Connected Element Thermo Sensor",
                         nameof(TmlConnectedElementTemperatureSensor));
 
                     public static LocString DESC =
                         (LocString)
-                        "Thermo Connected Element Sensors can disable buildings when average temperature of connected elements approach dangerous temperatures.";
+                        "Connected Element Thermo Sensors can disable buildings when average temperature of connected elements approach dangerous temperatures.";
 
                     public static LocString EFFECT = (LocString) ("Sends a " +
                                                                   UI.FormatAsAutomationState("Green Signal",
@@ -39,6 +39,39 @@ namespace TooMuchLogic
                                                                              " if average " +
                                                                              UI.FormatAsLink("Temperature", "HEAT") +
                                                                              " is within the selected range");
+
+                    public static LocString LOGIC_PORT_INACTIVE = (LocString) ("Otherwise, sends a " +
+                                                                               UI.FormatAsAutomationState("Red Signal",
+                                                                                   UI.AutomationState.Standby));
+
+                    public static LocString SIDESCREEN_TOOLTIP =
+                        (LocString) "Radius that the sensor works in. 0 being infinite.";
+
+                    public static LocString SIDESCREEN_TITTLE = (LocString) "Acting Radius";
+                }
+
+                public class TMLCONNECTEDELEMENTMASSSENSOR
+                {
+                    public static LocString NAME = (LocString) UI.FormatAsLink("Connected Element Mass Sensor",
+                        nameof(TmlConnectedElementTemperatureSensor));
+
+                    public static LocString DESC =
+                        (LocString)
+                        "Connected Element Mass Sensors can disable buildings when total mass of connected elements is at desired levels.";
+
+                    public static LocString EFFECT = (LocString) ("Sends a " +
+                                                                  UI.FormatAsAutomationState("Green Signal",
+                                                                      UI.AutomationState.Active) + " or a " +
+                                                                  UI.FormatAsAutomationState("Red Signal",
+                                                                      UI.AutomationState.Standby) +
+                                                                  " depending on the total mass of matching elements in the area.");
+
+                    public static LocString LOGIC_PORT = (LocString) "Total Mass";
+
+                    public static LocString LOGIC_PORT_ACTIVE = (LocString) ("Sends a " +
+                                                                             UI.FormatAsAutomationState("Green Signal",
+                                                                                 UI.AutomationState.Active) +
+                                                                             " if total mass is above the selected level");
 
                     public static LocString LOGIC_PORT_INACTIVE = (LocString) ("Otherwise, sends a " +
                                                                                UI.FormatAsAutomationState("Red Signal",
