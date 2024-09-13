@@ -21,7 +21,8 @@ namespace TooMuchLogic.Services
             return true;
         }
 
-        public HashSet<int> GrabCellsIterative(int source, Element sourceElement, Func<int, int, bool> earlyBreakFunc)
+        public HashSet<int> GrabCellsIterative(
+            int source, Element sourceElement, Func<bool> earlySetFunc, Func<int, int, bool> earlyBreakFunc)
         {
             //CavityInfo cavityForCell = Game.Instance.roomProber.GetCavityForCell(source);
             //SgtLogger.log($"Cell {source} is inside Cavity with {cavityForCell.numCells} total cells");
@@ -34,7 +35,7 @@ namespace TooMuchLogic.Services
             while (queue.Any())
             {
                 int cell = queue.Dequeue();
-                if (earlyBreakFunc(source, cell))
+                if (earlyBreakFunc(source, cell) && earlySetFunc())
                     break;
 
                 if (visited.Contains(cell))

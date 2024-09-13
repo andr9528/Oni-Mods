@@ -4,6 +4,7 @@ using static STRINGS.UI;
 using System.Collections.Generic;
 using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using TooMuchLogic.Services;
 using UnityEngine;
 
@@ -15,16 +16,17 @@ namespace TooMuchLogic
         private static Dictionary<int, TmlConnectedElementMassSensor> knownSensors = new();
         private static Dictionary<string, HashSet<int>> rooms = new();
 
-        [CanBeNull] private string currentRoomId;
-        private bool buildingRoom = false;
+        private int myCell;
+        private ConjoinedSensorLogicService<TmlConnectedElementMassSensor> conjoinedSensorLogicService;
+        public float minMass = 0;
+        public float maxMass = int.MaxValue;
+        private bool wasOn;
+        private HandleVector<int>.Handle structureTemperature;
+
         [Serialize] [SerializeField] public float thresholdMass = 20f;
         [Serialize] [SerializeField] public int radius = 0;
         [Serialize] [SerializeField] public bool activateAboveThreshold;
-        public float minMass = 0;
-        public float maxMass = int.MaxValue;
         [Serialize] [SerializeField] public float totalMass;
-        private bool wasOn;
-        public HashSet<int> roomCells;
         [MyCmpAdd] private CopyBuildingSettings copyBuildingSettings;
         [MyCmpGet] private LogicPorts logicPorts;
 
@@ -39,6 +41,9 @@ namespace TooMuchLogic
             Threshold = component.Threshold;
             ActivateAboveThreshold = component.ActivateAboveThreshold;
         }
+
+        public float StructureTemperature =>
+            GameComps.StructureTemperatures.GetPayload(structureTemperature).Temperature;
 
         /// <inheritdoc />
         public float GetRangeMinInputField()
@@ -141,34 +146,25 @@ namespace TooMuchLogic
         public override void OnCleanUp()
         {
             base.OnCleanUp();
-            int myCell = Grid.PosToCell(this);
             knownSensors.Remove(myCell);
-            RemoveFromRoom();
-        }
-
-        private void RemoveFromRoom()
-        {
-            int myCell = Grid.PosToCell(this);
-            if (string.IsNullOrWhiteSpace(currentRoomId))
-                return;
-
-            rooms[currentRoomId].Remove(myCell);
-            currentRoomId = "";
+            conjoinedSensorLogicService.RemoveFromRoom();
         }
 
         public override void OnSpawn()
         {
             base.OnSpawn();
-            roomCells = new HashSet<int>();
+            myCell = Grid.PosToCell(this);
+            conjoinedSensorLogicService = new ConjoinedSensorLogicService<TmlConnectedElementMassSensor>(radius,
+                ref rooms, ref knownSensors, myCell);
 
-            int myCell = Grid.PosToCell(this);
             knownSensors.Add(myCell, this);
 
+            structureTemperature = GameComps.StructureTemperatures.GetHandle(gameObject);
             OnToggle += new Action<bool>(OnSwitchToggled);
             UpdateVisualState(true);
             UpdateLogicCircuit();
             wasOn = switchedOn;
-            OnRoomRebuild();
+            conjoinedSensorLogicService.CollectConnectedElementCells(UpdateTotalMass, SetTotalMassFromOtherSensor);
         }
 
         private void OnSwitchToggled(bool toggled_on)
@@ -200,64 +196,12 @@ namespace TooMuchLogic
             logicPorts.SendSignal(LogicSwitch.PORT_ID, switchedOn ? 1 : 0);
         }
 
-        private void OnRoomRebuild()
-        {
-            if (buildingRoom)
-                return;
-            buildingRoom = true;
-
-            int myCell = Grid.PosToCell(this);
-            if ((double) Grid.Mass[myCell] <= 0.0)
-                return;
-
-            roomCells.Clear();
-
-            Element startElement = Grid.Element[myCell];
-
-            var grapper = new CellGrapperService();
-            roomCells = radius == 0
-                ? grapper.GrabCellsIterative(myCell, startElement, EarlyBreak)
-                : grapper.GrabCellsRadius(myCell, startElement, radius);
-
-            if (radius == 0 && string.IsNullOrWhiteSpace(currentRoomId))
-            {
-                currentRoomId = Guid.NewGuid().ToString();
-                rooms.Add(currentRoomId, new HashSet<int>());
-                rooms[currentRoomId].Add(myCell);
-            }
-
-            buildingRoom = false;
-
-            UpdateTotalMass();
-        }
-
-        private bool EarlyBreak(int source, int cell)
-        {
-            return radius == 0 && knownSensors.ContainsKey(cell) && UpdateMassFromOtherSensor(source, cell);
-        }
-
-        private bool UpdateMassFromOtherSensor(int source, int cell)
-        {
-            if (source == cell)
-                return false;
-
-            var existingRoom = rooms.FirstOrDefault(x => x.Value.Contains(cell));
-            if (existingRoom.Equals(default(KeyValuePair<string, HashSet<int>>)))
-                return false;
-
-            existingRoom.Value.Add(source);
-            currentRoomId = existingRoom.Key;
-
-            return SetTotalMassFromOtherSensor();
-        }
-
         private bool SetTotalMassFromOtherSensor()
         {
-            if (string.IsNullOrEmpty(currentRoomId))
+            if (string.IsNullOrEmpty(conjoinedSensorLogicService.currentRoomId))
                 return false;
 
-            int otherSensorCell = rooms[currentRoomId].First();
-            int myCell = Grid.PosToCell(this);
+            int otherSensorCell = rooms[conjoinedSensorLogicService.currentRoomId].First();
             if (otherSensorCell == myCell)
                 return false;
 
@@ -269,12 +213,13 @@ namespace TooMuchLogic
 
         private void UpdateTotalMass()
         {
-            int myCell = Grid.PosToCell(this);
-            var room = rooms.FirstOrDefault(x => x.Key == currentRoomId);
+            var room = rooms.FirstOrDefault(x => x.Key == conjoinedSensorLogicService.currentRoomId);
+            //SgtLogger.log(
+            //    $"Found following room ({room})(Mass), when looking for room with following id ({conjoinedSensorLogicService.currentRoomId})");
 
             if (radius != 0 || room.Value.First() == myCell)
             {
-                totalMass = roomCells.Where(Grid.IsValidCell).Sum(cell => Grid.Mass[cell]);
+                totalMass = conjoinedSensorLogicService.roomCells.Where(Grid.IsValidCell).Sum(cell => Grid.Mass[cell]);
                 return;
             }
 
@@ -284,17 +229,14 @@ namespace TooMuchLogic
         /// <inheritdoc />
         public void Sim4000ms(float dt)
         {
-            int myCell = Grid.PosToCell(this);
-            var room = rooms.FirstOrDefault(x => x.Key == currentRoomId);
-
-            if (string.IsNullOrEmpty(currentRoomId) ||
-                (!string.IsNullOrEmpty(currentRoomId) && room.Value.First() == myCell))
-                OnRoomRebuild();
+            if (conjoinedSensorLogicService.ShouldCellsBeRecollected())
+                conjoinedSensorLogicService.CollectConnectedElementCells(UpdateTotalMass, SetTotalMassFromOtherSensor);
             else
                 UpdateTotalMass();
 
             UpdateLogicOutput();
         }
+
 
         private void UpdateLogicOutput()
         {
@@ -340,8 +282,11 @@ namespace TooMuchLogic
         public void SetSliderValue(float percent, int index)
         {
             radius = (int) Math.Round(percent);
+            conjoinedSensorLogicService.radius = radius;
             if (radius != 0)
-                RemoveFromRoom();
+                conjoinedSensorLogicService.RemoveFromRoom();
+
+            conjoinedSensorLogicService.CollectConnectedElementCells(UpdateTotalMass, SetTotalMassFromOtherSensor);
         }
 
         /// <inheritdoc />
