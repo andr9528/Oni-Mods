@@ -12,7 +12,7 @@ using static STRINGS.MISC.STATUSITEMS;
 using static STRINGS.UI;
 using CODEX = STRINGS.CODEX;
 
-namespace TooMuchLogic
+namespace TooMuchLogic.Logic
 {
     public class TmlConnectedElementTemperatureSensor : Switch, ISaveLoadable, IThresholdSwitch, ISim4000ms,
         ISingleSliderControl
@@ -36,14 +36,12 @@ namespace TooMuchLogic
         [MyCmpGet] private LogicPorts logicPorts;
 
         private static readonly EventSystem.IntraObjectHandler<TmlConnectedElementTemperatureSensor>
-            OnCopySettingsDelegate =
-                new((Action<TmlConnectedElementTemperatureSensor, object>) ((component, data) =>
-                    component.OnCopySettings(data)));
+            OnCopySettingsDelegate = new((component, data) => component.OnCopySettings(data));
 
         private void OnCopySettings(object data)
         {
             var component = ((GameObject) data).GetComponent<TmlConnectedElementTemperatureSensor>();
-            if (!((UnityEngine.Object) component != (UnityEngine.Object) null))
+            if (!(component != null))
                 return;
             Threshold = component.Threshold;
             ActivateAboveThreshold = component.ActivateAboveThreshold;

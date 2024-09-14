@@ -2,7 +2,7 @@
 using Utilities.Abstractions;
 using UtilLibs;
 
-namespace TooMuchLogic
+namespace TooMuchLogic.Config
 {
     public class TmlOneWayGateConfig : LogicGateBaseConfig, IPatchMe
     {
@@ -48,7 +48,7 @@ namespace TooMuchLogic
         };
 
         /// <inheritdoc />
-        public override CellOffset[] ControlPortOffsets => (CellOffset[]) null;
+        public override CellOffset[] ControlPortOffsets => null;
 
         /// <inheritdoc />
         public string GetId()

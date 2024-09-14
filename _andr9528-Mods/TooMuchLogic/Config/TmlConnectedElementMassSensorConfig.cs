@@ -1,14 +1,15 @@
 ﻿using System.Collections.Generic;
+using TooMuchLogic.Logic;
 using TUNING;
 using UnityEngine;
 using Utilities.Abstractions;
 using UtilLibs;
 
-namespace TooMuchLogic
+namespace TooMuchLogic.Config
 {
-    public class TmlConnectedElementTemperatureSensorConfig : IBuildingConfig, IPatchMe
+    public class TmlConnectedElementMassSensorConfig : IBuildingConfig, IPatchMe
     {
-        public static string ID = "TmlConnectedElementTemperatureSensor";
+        public static string ID = "TmlConnectedElementMassSensor";
 
         /// <inheritdoc />
         public override BuildingDef CreateBuildingDef()
@@ -20,7 +21,7 @@ namespace TooMuchLogic
             EffectorValues decorPenalty = BUILDINGS.DECOR.PENALTY.TIER0;
             EffectorValues noise = NOISE_POLLUTION.NONE;
 
-            BuildingDef buildingDef = BuildingTemplates.CreateBuildingDef(id, 1, 1, "switchthermal_kanim", 30, 45f,
+            BuildingDef buildingDef = BuildingTemplates.CreateBuildingDef(id, 1, 1, "switchgaspressure_kanim", 30, 45f,
                 constructionAmount, constructionResources, meltingPoint, BuildLocationRule.Anywhere, decorPenalty,
                 noise);
 
@@ -33,12 +34,12 @@ namespace TooMuchLogic
             buildingDef.AlwaysOperational = true;
             buildingDef.LogicOutputPorts = new List<LogicPorts.Port>();
             buildingDef.LogicOutputPorts.Add(LogicPorts.Port.OutputPort(LogicSwitch.PORT_ID, new CellOffset(0, 0),
-                (string) STRINGS.BUILDINGS.PREFABS.TMLCONNECTEDELEMENTTEMPERATURESENSOR.LOGIC_PORT,
-                (string) STRINGS.BUILDINGS.PREFABS.TMLCONNECTEDELEMENTTEMPERATURESENSOR.LOGIC_PORT_ACTIVE,
-                (string) STRINGS.BUILDINGS.PREFABS.TMLCONNECTEDELEMENTTEMPERATURESENSOR.LOGIC_PORT_INACTIVE, true));
-            SoundEventVolumeCache.instance.AddVolume("switchthermal_kanim", "PowerSwitch_on",
+                (string) STRINGS.BUILDINGS.PREFABS.TMLCONNECTEDELEMENTMASSSENSOR.LOGIC_PORT,
+                (string) STRINGS.BUILDINGS.PREFABS.TMLCONNECTEDELEMENTMASSSENSOR.LOGIC_PORT_ACTIVE,
+                (string) STRINGS.BUILDINGS.PREFABS.TMLCONNECTEDELEMENTMASSSENSOR.LOGIC_PORT_INACTIVE, true));
+            SoundEventVolumeCache.instance.AddVolume("switchgaspressure_kanim", "PowerSwitch_on",
                 NOISE_POLLUTION.NOISY.TIER3);
-            SoundEventVolumeCache.instance.AddVolume("switchthermal_kanim", "PowerSwitch_off",
+            SoundEventVolumeCache.instance.AddVolume("switchgaspressure_kanim", "PowerSwitch_off",
                 NOISE_POLLUTION.NOISY.TIER3);
             GeneratedBuildings.RegisterWithOverlay(OverlayModes.Logic.HighlightItemIDs, ID);
 
@@ -48,10 +49,10 @@ namespace TooMuchLogic
         /// <inheritdoc />
         public override void DoPostConfigureComplete(GameObject go)
         {
-            var temperatureSensor = go.AddOrGet<TmlConnectedElementTemperatureSensor>();
+            var temperatureSensor = go.AddOrGet<TmlConnectedElementMassSensor>();
             temperatureSensor.manuallyControlled = false;
-            temperatureSensor.minTemp = 0.0f;
-            temperatureSensor.maxTemp = 9999f;
+            temperatureSensor.minMass = 0.0f;
+            temperatureSensor.maxMass = int.MaxValue;
             go.GetComponent<KPrefabID>().AddTag(GameTags.OverlayInFrontOfConduits);
         }
 
@@ -70,7 +71,7 @@ namespace TooMuchLogic
         /// <inheritdoc />
         public string GetTechnology()
         {
-            return GameStrings.Technology.Gases.HVAC;
+            return GameStrings.Technology.Gases.ImprovedVentilation;
         }
     }
 }

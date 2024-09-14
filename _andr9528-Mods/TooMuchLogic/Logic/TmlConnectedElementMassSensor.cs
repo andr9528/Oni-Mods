@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using TooMuchLogic.Services;
 using UnityEngine;
 
-namespace TooMuchLogic
+namespace TooMuchLogic.Logic
 {
     public class TmlConnectedElementMassSensor : Switch, ISaveLoadable, IThresholdSwitch, ISim4000ms,
         ISingleSliderControl
@@ -31,12 +31,12 @@ namespace TooMuchLogic
         [MyCmpGet] private LogicPorts logicPorts;
 
         private static readonly EventSystem.IntraObjectHandler<TmlConnectedElementMassSensor> OnCopySettingsDelegate =
-            new((Action<TmlConnectedElementMassSensor, object>) ((component, data) => component.OnCopySettings(data)));
+            new((component, data) => component.OnCopySettings(data));
 
         private void OnCopySettings(object data)
         {
             var component = ((GameObject) data).GetComponent<TmlConnectedElementMassSensor>();
-            if (!((UnityEngine.Object) component != (UnityEngine.Object) null))
+            if (!(component != null))
                 return;
             Threshold = component.Threshold;
             ActivateAboveThreshold = component.ActivateAboveThreshold;
