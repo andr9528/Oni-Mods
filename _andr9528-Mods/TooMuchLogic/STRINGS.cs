@@ -4,11 +4,37 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TooMuchLogic.Logic;
 
 namespace TooMuchLogic
 {
     internal class STRINGS
     {
+        //UI.UISIDESCREENS.THRESHOLD_SWITCH_SIDESCREEN
+        public class MODDED_UI
+        {
+            public class UISIDESCREENS
+            {
+                public class THRESHOLD_SWITCH_SIDESCREEN
+                {
+                    public static LocString MASS_TITLE = (LocString) "Mass Threshold";
+                    public static LocString CONTENT_MASS = (LocString) "Kilogram";
+
+                    public static LocString MASS_TOOLTIP_ABOVE = (LocString) ("Will send a " +
+                                                                              UI.FormatAsAutomationState("Green Signal",
+                                                                                  UI.AutomationState.Active) +
+                                                                              " if the mass is above <b>{0}</b>");
+
+                    public static LocString MASS_TOOLTIP_BELOW = (LocString) ("Will send a " +
+                                                                              UI.FormatAsAutomationState("Green Signal",
+                                                                                  UI.AutomationState.Active) +
+                                                                              " if the mass is below <b>{0}</b>");
+
+                    public static LocString MASS_UNITS = (LocString) "";
+                }
+            }
+        }
+
         public class BUILDINGS
         {
             public class PREFABS
@@ -117,6 +143,90 @@ namespace TooMuchLogic
                                                                            " if receiving " +
                                                                            UI.FormatAsAutomationState("Red",
                                                                                UI.AutomationState.Standby));
+                }
+
+                public class TMLLIQUIDCONDUITMASSSENSOR
+                {
+                    public static LocString NAME = (LocString) UI.FormatAsLink("Liquid Pipe Mass Sensor",
+                        nameof(TmlConnectedElementTemperatureSensor));
+
+                    public static LocString DESC =
+                        (LocString)
+                        "Liquid Pipe Mass Sensors can output a logic signal when mass of content is withing desirable levels.";
+
+                    public static LocString EFFECT = (LocString) ("Sends a " +
+                                                                  UI.FormatAsAutomationState("Green Signal",
+                                                                      UI.AutomationState.Active) + " or a " +
+                                                                  UI.FormatAsAutomationState("Red Signal",
+                                                                      UI.AutomationState.Standby) +
+                                                                  " depending on the mass of the conduit content.");
+
+                    public static LocString LOGIC_PORT = (LocString) "Mass";
+
+                    public static LocString LOGIC_PORT_ACTIVE = (LocString) ("Sends a " +
+                                                                             UI.FormatAsAutomationState("Green Signal",
+                                                                                 UI.AutomationState.Active) +
+                                                                             " if mass is above the selected level");
+
+                    public static LocString LOGIC_PORT_INACTIVE = (LocString) ("Otherwise, sends a " +
+                                                                               UI.FormatAsAutomationState("Red Signal",
+                                                                                   UI.AutomationState.Standby));
+                }
+
+                public class TMLGASCONDUITMASSSENSOR
+                {
+                    public static LocString NAME = (LocString) UI.FormatAsLink("Gas Pipe Mass Sensor",
+                        nameof(TmlConnectedElementTemperatureSensor));
+
+                    public static LocString DESC =
+                        (LocString)
+                        "Gas Pipe Mass Sensors can output a logic signal when mass of content is withing desirable levels.";
+
+                    public static LocString EFFECT = (LocString) ("Sends a " +
+                                                                  UI.FormatAsAutomationState("Green Signal",
+                                                                      UI.AutomationState.Active) + " or a " +
+                                                                  UI.FormatAsAutomationState("Red Signal",
+                                                                      UI.AutomationState.Standby) +
+                                                                  " depending on the mass of the conduit content.");
+
+                    public static LocString LOGIC_PORT = (LocString) "Mass";
+
+                    public static LocString LOGIC_PORT_ACTIVE = (LocString) ("Sends a " +
+                                                                             UI.FormatAsAutomationState("Green Signal",
+                                                                                 UI.AutomationState.Active) +
+                                                                             " if mass is above the selected level");
+
+                    public static LocString LOGIC_PORT_INACTIVE = (LocString) ("Otherwise, sends a " +
+                                                                               UI.FormatAsAutomationState("Red Signal",
+                                                                                   UI.AutomationState.Standby));
+                }
+
+                public class TMLSOLIDCONDUITMASSSENSOR
+                {
+                    public static LocString NAME = (LocString) UI.FormatAsLink("Conveyor Rail Mass Sensor",
+                        nameof(TmlConnectedElementTemperatureSensor));
+
+                    public static LocString DESC =
+                        (LocString)
+                        "Conveyor Rail Mass Sensors can output a logic signal when mass of content is withing desirable levels.";
+
+                    public static LocString EFFECT = (LocString) ("Sends a " +
+                                                                  UI.FormatAsAutomationState("Green Signal",
+                                                                      UI.AutomationState.Active) + " or a " +
+                                                                  UI.FormatAsAutomationState("Red Signal",
+                                                                      UI.AutomationState.Standby) +
+                                                                  " depending on the mass of the conduit content.");
+
+                    public static LocString LOGIC_PORT = (LocString) "Mass";
+
+                    public static LocString LOGIC_PORT_ACTIVE = (LocString) ("Sends a " +
+                                                                             UI.FormatAsAutomationState("Green Signal",
+                                                                                 UI.AutomationState.Active) +
+                                                                             " if mass is above the selected level");
+
+                    public static LocString LOGIC_PORT_INACTIVE = (LocString) ("Otherwise, sends a " +
+                                                                               UI.FormatAsAutomationState("Red Signal",
+                                                                                   UI.AutomationState.Standby));
                 }
             }
         }
